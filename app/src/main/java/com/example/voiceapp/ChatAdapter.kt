@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import androidx.constraintlayout.widget.ConstraintLayout
 
 class ChatAdapter : RecyclerView.Adapter<ChatAdapter.MessageViewHolder>() {
     private val messages = mutableListOf<ChatMessage>()
@@ -23,14 +24,21 @@ class ChatAdapter : RecyclerView.Adapter<ChatAdapter.MessageViewHolder>() {
         val message = messages[position]
         holder.messageText.apply {
             text = message.text
-            layoutParams = (layoutParams as ViewGroup.MarginLayoutParams).apply {
-                marginStart = if (message.isUser) 64 else 16
-                marginEnd = if (message.isUser) 16 else 64
+            
+            // メッセージの位置とスタイルを設定
+            val params = layoutParams as ConstraintLayout.LayoutParams
+            if (message.isUser) {
+                setBackgroundResource(R.drawable.chat_bubble_user)
+                params.horizontalBias = 1f  // 右寄せ
+            } else {
+                setBackgroundResource(R.drawable.chat_bubble_ai)
+                params.horizontalBias = 0f  // 左寄せ
             }
-            setBackgroundResource(
-                if (message.isUser) R.drawable.chat_bubble_user
-                else R.drawable.chat_bubble_ai
-            )
+            layoutParams = params
+            
+            // アニメーションの追加（オプション）
+            alpha = 0f
+            animate().alpha(1f).setDuration(200).start()
         }
     }
 

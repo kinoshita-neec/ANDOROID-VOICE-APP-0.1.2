@@ -1,499 +1,238 @@
 package com.example.voiceapp
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import android.speech.tts.TextToSpeech
 import android.util.Log
-import android.view.View  // この行を追加
-import android.widget.Button
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.*
-import java.util.*
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.voiceapp.databinding.ActivityMainBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+/**
+ * アプリケーションのメインアクティビティ
+ * 
+ * このクラスは以下の主要な機能を提供します：
+ * 1. 音声認識とAI対話のUIインターフェース
+ * 2. 音声認識マネージャーと連携した音声入力処理
+ * 3. AIマネージャーを使用した対話処理
+ * 4. テキスト読み上げ機能の管理
+ * 5. チャットスタイルのメッセージ表示
+ */
 class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecognitionCallback {
+    // プロパティの宣言を追加
+    private lateinit var binding: ActivityMainBinding
     private lateinit var speechRecognitionManager: SpeechRecognitionManager
-    private lateinit var textToSpeech: TextToSpeech
-    private lateinit var startListeningButton: Button
-    private lateinit var recognizedTextView: TextView
-    private lateinit var aiResponseTextView: TextView
-    private lateinit var statusText: TextView
-    private lateinit var cancelButton: Button
-    private lateinit var askAiButton: Button
-    private var isListening = false // 音声認識中かどうかを管理するフラグ
-    private var isProcessing = false
-    private var currentRecognizedText: String = ""
-
-    private var mainScope = CoroutineScope(Dispatchers.Main)
     private lateinit var aiManager: AIManager
-    private var lastToastTime = 0L // Toastメッセージの表示時間を管理する変数
-    private var recognizedTextHistory = StringBuilder()
+    private lateinit var chatAdapter: ChatAdapter
+    private lateinit var textToSpeechManager: TextToSpeechManager
+    private var currentState = UIState()
 
-    private lateinit var sensorManager: SensorManager
-    private lateinit var checkSensorsButton: Button
-    private lateinit var sensorInfoText: TextView
-
-    private enum class AppState {
-        IDLE,              // 初期状態
-        RECORDING,         // 音声入力中
-        CONVERTING,        // 音声をテキストに変換中
-        READY_TO_ASK,     // AI問い合わせ可能
-        ASKING_AI,        // AIに問い合わせ中
-        AI_THINKING,      // AI応答生成中
-        AI_RESPONDED,     // AI応答受信完了
-        SPEAKING,         // 応答読み上げ中
-        COMPLETED,        // 処理完了
-        ERROR,            // エラー発生
-        CHECKING_SENSORS  // センサー情報確認中
-    }
-
-    private var currentState = AppState.IDLE
-
-    private fun updateState(newState: AppState) {
-        currentState = newState
-        val statusText = when (newState) {
-            AppState.IDLE -> R.string.status_waiting_input
-            AppState.RECORDING -> R.string.status_recording
-            AppState.CONVERTING -> R.string.status_converting
-            AppState.READY_TO_ASK -> R.string.status_ready_to_ask
-            AppState.ASKING_AI -> R.string.status_asking_ai
-            AppState.AI_THINKING -> R.string.status_ai_thinking
-            AppState.AI_RESPONDED -> R.string.status_ai_responded
-            AppState.SPEAKING -> R.string.status_speaking_response
-            AppState.COMPLETED -> R.string.status_completed
-            AppState.ERROR -> R.string.status_error_occurred
-            AppState.CHECKING_SENSORS -> R.string.status_checking_sensors
-        }
-        updateUIForState(newState)
-        this.statusText.text = getString(statusText)
-        Log.d("MainActivity", "状態遷移: $newState")
-    }
-
-    private fun updateUIForState(state: AppState) {
-        runOnUiThread {
-            when (state) {
-                AppState.IDLE -> {
-                    startListeningButton.isEnabled = true
-                    askAiButton.isEnabled = false
-                    cancelButton.isEnabled = false
-                }
-                AppState.RECORDING -> {
-                    startListeningButton.isEnabled = true
-                    startListeningButton.text = getString(R.string.stop_listening)
-                    cancelButton.isEnabled = true
-                    // AI問い合わせボタンの状態を維持
-                }
-                AppState.CONVERTING -> {
-                    startListeningButton.isEnabled = false
-                    askAiButton.isEnabled = false
-                    cancelButton.isEnabled = true
-                }
-                AppState.READY_TO_ASK -> {
-                    startListeningButton.isEnabled = true
-                    startListeningButton.text = getString(R.string.start_listening)
-                    askAiButton.isEnabled = true
-                    cancelButton.isEnabled = false
-                }
-                AppState.ASKING_AI, AppState.AI_THINKING -> {
-                    startListeningButton.isEnabled = false
-                    askAiButton.isEnabled = false
-                    cancelButton.isEnabled = true
-                }
-                AppState.AI_RESPONDED, AppState.SPEAKING -> {
-                    startListeningButton.isEnabled = false
-                    askAiButton.isEnabled = false
-                    cancelButton.isEnabled = true
-                }
-                AppState.COMPLETED -> {
-                    startListeningButton.isEnabled = true
-                    startListeningButton.text = getString(R.string.start_listening)
-                    askAiButton.isEnabled = currentRecognizedText.isNotEmpty()
-                    cancelButton.isEnabled = false
-                }
-                AppState.ERROR -> {
-                    startListeningButton.isEnabled = true
-                    startListeningButton.text = getString(R.string.start_listening)
-                    askAiButton.isEnabled = currentRecognizedText.isNotEmpty()
-                    cancelButton.isEnabled = false
-                }
-                AppState.CHECKING_SENSORS -> {
-                    startListeningButton.isEnabled = false
-                    askAiButton.isEnabled = false
-                    checkSensorsButton.isEnabled = false
-                    cancelButton.isEnabled = true
-                }
-                else -> {
-                    checkSensorsButton.isEnabled = true
-                }
-            }
-        }
-    }
-
+    /**
+     * アクティビティの初期化
+     * 
+     * 以下の順序で初期化を行います：
+     * 1. システムの音声設定
+     * 2. レイアウトのバインディング
+     * 3. TextToSpeechManagerの初期化
+     * 4. SpeechRecognitionManagerの初期化
+     * 5. チャットアダプターの設定
+     * 6. AIManagerの初期化
+     * 7. ボタンのセットアップ
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
+        // システムの音声をオフにする
+        volumeControlStream = AudioManager.STREAM_MUSIC
+        (getSystemService(Context.AUDIO_SERVICE) as AudioManager).apply {
+            // 通知音を無効化
+            adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_MUTE, 0)
+        }
+        
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Initialize components
+        // TextToSpeechManagerの初期化と読み上げ
+        textToSpeechManager = TextToSpeechManager(this)
+        textToSpeechManager.initialize {
+            // 初期化完了後にウェルカムメッセージを読み上げ
+            textToSpeechManager.speak(getString(R.string.welcome_message))
+        }
+
+        // SpeechRecognitionManagerの初期化
         speechRecognitionManager = SpeechRecognitionManager(this, this)
+
+        // チャットアダプターの初期化
+        chatAdapter = ChatAdapter()
+        binding.chatRecyclerView.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = chatAdapter
+        }
+
         aiManager = AIManager(this)
-        startListeningButton = findViewById(R.id.startListeningButton)
-        recognizedTextView = findViewById(R.id.recognizedText)
-        aiResponseTextView = findViewById(R.id.aiResponseText)
-        statusText = findViewById(R.id.statusText)
-        cancelButton = findViewById(R.id.cancelButton)
-        askAiButton = findViewById(R.id.askAiButton)
-
-        cancelButton.setOnClickListener {
-            cancelOperation()
-        }
-
-        askAiButton.setOnClickListener {
-            if (currentRecognizedText.isNotEmpty()) {
-                askAI(currentRecognizedText)
-            }
-        }
-
-        // Check for microphone permission
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
-        }
-
-        startListeningButton.setOnClickListener {
-            if (speechRecognitionManager.isListening()) {
-                stopListening()
-            } else {
-                startListening()
-            }
-        }
-
-        textToSpeech = TextToSpeech(this) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                val result = textToSpeech.setLanguage(Locale.JAPAN)
-                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    Log.e("MainActivity", "Language not supported")
-                }
-            } else {
-                Log.e("MainActivity", "Initialization failed")
-            }
-        }
-
-        sensorManager = SensorManager(this)
-        checkSensorsButton = findViewById(R.id.checkSensorsButton)
-        sensorInfoText = findViewById(R.id.sensorInfoText)
-
-        checkSensorsButton.setOnClickListener {
-            updateState(AppState.CHECKING_SENSORS)
-            checkSensors()
-        }
+        setupButtons()
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted, do nothing here, startListening is called by button click
+    private fun setupButtons() {
+        binding.startListeningButton.setOnClickListener {
+            if (!speechRecognitionManager.isListening()) {
+                checkPermissionAndStartListening()
             } else {
-                Toast.makeText(this, "マイクの許可が必要です", Toast.LENGTH_SHORT).show()
+                speechRecognitionManager.stopListening()
             }
         }
-    }
 
-    private fun startListening() {
-        startListeningButton.isEnabled = false
-        startListeningButton.text = getString(R.string.stop_listening)
-        speechRecognitionManager.startListening()
-        updateUIState()
-    }
-
-    private fun stopListening() {
-        try {
-            isListening = false  // 先にフラグを更新
+        binding.cancelButton.setOnClickListener {
             speechRecognitionManager.stopListening()
-            
-            Handler(Looper.getMainLooper()).postDelayed({
-                runOnUiThread {
-                    startListeningButton.text = getString(R.string.start_listening)
-                    startListeningButton.isEnabled = true
-                    
-                    if (currentRecognizedText.isNotEmpty()) {
-                        updateState(AppState.READY_TO_ASK)
-                        askAiButton.isEnabled = true
-                    } else {
-                        updateState(AppState.IDLE)
-                    }
-                }
-            }, 500)
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Error in stopListening: ${e.message}")
-            updateState(AppState.ERROR)
         }
     }
 
-    // SpeechRecognitionCallback implementations
+    /**
+     * 音声認識の権限チェックと開始
+     * 
+     * 1. RECORD_AUDIO権限の確認
+     * 2. 権限がない場合は要求
+     * 3. 権限がある場合は音声認識を開始
+     */
+    private fun checkPermissionAndStartListening() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), PERMISSION_REQUEST_CODE)
+            return
+        }
+        updateUIState(currentState.copy(isListening = true))
+        speechRecognitionManager.startListening()
+    }
+
+    /**
+     * UIの状態を更新し、表示を反映
+     * 
+     * 更新される要素：
+     * - 音声認識ボタンの状態とアイコン
+     * - キャンセルボタンの有効/無効状態
+     * - エラーメッセージの表示
+     * - 処理中の表示状態
+     */
+    private fun updateUIState(newState: UIState) {
+        currentState = newState
+        
+        // ボタンの状態更新
+        binding.startListeningButton.setImageResource(
+            if (currentState.isListening) 
+                android.R.drawable.ic_media_pause 
+            else 
+                android.R.drawable.ic_btn_speak_now
+        )
+        
+        // キャンセルボタンの有効/無効
+        binding.cancelButton.isEnabled = currentState.isCancelEnabled
+        
+        // エラーメッセージの表示
+        currentState.error?.let {
+            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+        }
+        
+        // 処理中の表示
+        if (currentState.isProcessing) {
+            binding.startListeningButton.isEnabled = false
+            // TODO: プログレスインジケータの表示
+        } else {
+            binding.startListeningButton.isEnabled = true
+            // TODO: プログレスインジケータの非表示
+        }
+    }
+
+    // SpeechRecognitionCallback の実装
     override fun onRecognitionStarted() {
-        updateState(AppState.RECORDING)
-        showToast(getString(R.string.please_speak))
+        updateUIState(currentState.copy(
+            isListening = true,
+            isCancelEnabled = true,
+            error = null
+        ))
     }
 
     override fun onRecognitionResult(text: String) {
-        runOnUiThread {
-            // 認識テキストの更新（追加ではなく上書き）
-            currentRecognizedText = text
-            recognizedTextView.text = text
-
-            // UI状態更新
-            if (!isProcessing) {
-                updateState(AppState.READY_TO_ASK)
-                askAiButton.isEnabled = true
-            }
-        }
+        updateUIState(currentState.copy(
+            isProcessing = true
+        ))
+        chatAdapter.addMessage(ChatMessage(text, true))
+        binding.chatRecyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+        getAIResponse(text)
     }
 
     override fun onRecognitionError(errorMessage: String) {
-        updateState(AppState.ERROR)
-        showToast(errorMessage)
+        updateUIState(currentState.copy(
+            isListening = false,
+            isCancelEnabled = false,
+            error = errorMessage
+        ))
     }
 
     override fun onPartialResult(text: String) {
-        // 部分認識結果の表示
-        runOnUiThread {
-            if (text.isNotEmpty()) {
-                recognizedTextView.text = text
-            }
-        }
+        // 必要に応じて部分認識結果を処理
     }
 
-    private fun processRecognizedText(text: String) {
-        try {
-            Log.d("MainActivity", "AI処理開始")
-            isProcessing = true
-            isListening = false
-            stopListening()
-            updateUIState()
-
-            mainScope.launch {
-                try {
-                    // AI応答を取得
-                    val response = withContext(Dispatchers.IO) {
-                        aiManager.getAIResponse(text)
-                    }
-                    
-                    Log.d("MainActivity", "AI応答受信: $response")
-                    
-                    // UI更新
-                    withContext(Dispatchers.Main) {
-                        aiResponseTextView.text = response
-                        statusText.text = getString(R.string.status_speaking)
-                        
-                        // 音声で応答を読み上げ
-                        textToSpeech.speak(response, TextToSpeech.QUEUE_FLUSH, null, null)
-                        delay(2000) // 読み上げ時間を確保
-                    }
-                    
-                } catch (e: Exception) {
-                    Log.e("MainActivity", "AI処理エラー", e)
-                    withContext(Dispatchers.Main) {
-                        statusText.text = getString(R.string.status_error)
-                        showToast("AI処理中にエラーが発生しました: ${e.message}")
-                    }
-                } finally {
-                    withContext(Dispatchers.Main) {
-                        isProcessing = false
-                        delay(1000)
-                        updateUIState()
-                        startListening()
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("MainActivity", "処理開始エラー", e)
-            isProcessing = false
-            updateUIState()
-        }
-    }
-
-    private fun askAI(text: String) {
-        updateState(AppState.ASKING_AI)
-        mainScope.launch {
+    /**
+     * AIからの応答を取得し表示
+     * 
+     * 処理の流れ：
+     * 1. コルーチンでバックグラウンド処理を開始
+     * 2. AIManagerを使用して応答を取得
+     * 3. 応答をチャットに表示
+     * 4. UI状態を更新
+     * 5. エラー発生時の処理
+     */
+    private fun getAIResponse(text: String) {
+        CoroutineScope(Dispatchers.Main).launch {
             try {
-                updateState(AppState.AI_THINKING)
                 val response = withContext(Dispatchers.IO) {
                     aiManager.getAIResponse(text)
                 }
-                updateState(AppState.AI_RESPONDED)
-                aiResponseTextView.text = response
-                
-                updateState(AppState.SPEAKING)
-                textToSpeech.speak(response, TextToSpeech.QUEUE_FLUSH, null, null)
-                delay(2000)
-                
-                updateState(AppState.COMPLETED)
+                chatAdapter.addMessage(ChatMessage(response, false))
+                binding.chatRecyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+                updateUIState(currentState.copy(
+                    isProcessing = false
+                ))
             } catch (e: Exception) {
-                Log.e("MainActivity", "AI処理エラー", e)
-                updateState(AppState.ERROR)
-                showToast("AI処理中にエラーが発生しました: ${e.message}")
+                updateUIState(currentState.copy(
+                    isProcessing = false,
+                    error = e.message
+                ))
             }
         }
     }
 
-    private fun showToast(message: String) {
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastToastTime > 2000) { // 2秒間隔で表示
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-            lastToastTime = currentTime
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            speechRecognitionManager.startListening()
         }
-    }
-
-    // エラー回復のための再初期化メソッド
-    private fun reinitializeSpeechRecognizer() {
-        try {
-            speechRecognitionManager.destroy()
-            Handler(Looper.getMainLooper()).postDelayed({
-                speechRecognitionManager = SpeechRecognitionManager(this, this)
-            }, 200) // 短い遅延を入れて再初期化
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Error reinitializing SpeechRecognizer: ${e.message}")
-        }
-    }
-
-    // アプリがバックグラウンドから復帰した時の処理
-    override fun onResume() {
-        super.onResume()
-        try {
-            reinitializeSpeechRecognizer()
-            sensorManager.registerSensors()
-            isListening = false
-            isProcessing = false
-            updateUIState()
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Error in onResume: ${e.message}")
-            showToast("アプリの再開中にエラーが発生しました")
-        }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        sensorManager.unregisterSensors()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        textToSpeech.stop()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        // 通知音を元に戻す
+        (getSystemService(Context.AUDIO_SERVICE) as AudioManager).apply {
+            adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_UNMUTE, 0)
+        }
         speechRecognitionManager.destroy()
-        textToSpeech.shutdown()
-        mainScope.cancel() // aiManager.cancel()の代わりにmainScope.cancel()を使用
+        textToSpeechManager.shutdown()
     }
 
-    private fun cancelOperation() {
-        try {
-            if (isProcessing) {
-                mainScope.cancel()
-                mainScope = CoroutineScope(Dispatchers.Main)
-                isProcessing = false
-            }
-            // 音声認識の停止と再初期化
-            speechRecognitionManager.stopListening()
-            Handler(Looper.getMainLooper()).postDelayed({
-                speechRecognitionManager.reinitialize()
-                isListening = false
-                updateState(AppState.IDLE)
-            }, 1000)
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Error in cancelOperation: ${e.message}")
-            updateState(AppState.ERROR)
-        }
-    }
-
-    private fun updateUIState() {
-        runOnUiThread {
-            when {
-                isProcessing -> {
-                    statusText.text = getString(R.string.status_processing)
-                    startListeningButton.isEnabled = false
-                    askAiButton.isEnabled = false
-                    cancelButton.isEnabled = true
-                }
-                isListening -> {
-                    statusText.text = getString(R.string.status_listening)
-                    startListeningButton.isEnabled = true
-                    startListeningButton.text = getString(R.string.stop_listening)
-                    // AI問い合わせボタンの状態を保持
-                    cancelButton.isEnabled = true
-                }
-                else -> {
-                    startListeningButton.isEnabled = true
-                    startListeningButton.text = getString(R.string.start_listening)
-                    askAiButton.isEnabled = currentRecognizedText.isNotEmpty()
-                    cancelButton.isEnabled = false
-                    statusText.text = if (currentRecognizedText.isNotEmpty()) {
-                        getString(R.string.status_ready_to_ask)
-                    } else {
-                        getString(R.string.status_idle)
-                    }
-                }
-            }
-        }
-    }
-
-    // 画面回転などでActivityが再作成される際のデータ保存
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString("recognizedTextHistory", recognizedTextHistory.toString())
-    }
-
-    // データの復元
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-        recognizedTextHistory = StringBuilder(savedInstanceState.getString("recognizedTextHistory", ""))
-        recognizedTextView.text = recognizedTextHistory.toString()
-    }
-
-    // クリア機能の追加（必要に応じて）
-    private fun clearRecognizedText() {
-        recognizedTextHistory.clear()
-        recognizedTextView.text = ""
-    }
-
-    private fun checkSensors() {
-        if (!sensorManager.isDataReady()) {
-            showToast("センサーデータを取得中です...")
-            Handler(Looper.getMainLooper()).postDelayed({
-                updateSensorInfo()
-            }, 2000)
-            return
-        }
-        updateSensorInfo()
-    }
-
-    private fun updateSensorInfo() {
-        val sensorInfo = sensorManager.getSensorInfo()
-        if (sensorInfo.isNotEmpty()) {
-            sensorInfoText.visibility = View.VISIBLE
-            sensorInfoText.text = sensorInfo
-            
-            val speakableInfo = sensorManager.getSpeakableInfo()
-            textToSpeech.speak(speakableInfo, TextToSpeech.QUEUE_FLUSH, null, "SENSORS")
-            
-            Handler(Looper.getMainLooper()).postDelayed({
-                updateState(AppState.COMPLETED)
-            }, 1000)
-        } else {
-            showToast("センサー情報を取得できません")
-            updateState(AppState.ERROR)
-        }
+    companion object {
+        private const val PERMISSION_REQUEST_CODE = 1
     }
 }

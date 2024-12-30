@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">音声対話アプリ</string>
-    <string name="welcome_message">ようこそ、たかしさん！音声対話アプリへ。</string>
+    <string name="welcome_message">ようこそ音声対話アプリへ。</string>
     <string name="prompt_temperature">現在の気温は %1$s°C です。</string>
     <string name="prompt_humidity">現在の湿度は %1$s%% です。</string>
     <string name="prompt_light">現在の照度は %1$s ルクスです。</string>

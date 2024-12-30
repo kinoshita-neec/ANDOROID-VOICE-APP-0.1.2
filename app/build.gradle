@@ -25,10 +25,15 @@ android {
     }
     buildFeatures {
         buildConfig = true
+        viewBinding true
     }
 
     buildTypes {
+        debug {
+            buildConfigField "String", "OPENAI_API_KEY", "\"${getApiKey()}\""
+        }
         release {
+            buildConfigField "String", "OPENAI_API_KEY", "\"${getApiKey()}\""
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -36,6 +41,16 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+}
+
+def getApiKey() {
+    def properties = new Properties()
+    properties.load(project.rootProject.file("local.properties").newDataInputStream())
+    def apiKey = properties.getProperty("OPENAI_API_KEY")
+    if (apiKey == null || apiKey.isEmpty()) {
+        throw new GradleException("OpenAI API key not found. Please add OPENAI_API_KEY to local.properties")
+    }
+    return apiKey
 }
 
 dependencies {
