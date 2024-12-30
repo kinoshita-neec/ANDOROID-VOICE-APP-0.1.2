@@ -30,6 +30,7 @@
     <string name="status_speaking_response">応答読み上げ中</string>
     <string name="status_completed">処理完了</string>
     <string name="status_error_occurred">エラーが発生しました</string>
+    <string name="status_checking_sensors">センサー情報を確認中...</string>
     <string name="button_cancel">中断</string>
     <string name="button_ask_ai">AI問い合わせ</string>
     <string name="button_check_sensors">センサー問い合わせ</string>

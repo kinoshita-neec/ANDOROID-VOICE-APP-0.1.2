@@ -53,7 +53,8 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         AI_RESPONDED,     // AI応答受信完了
         SPEAKING,         // 応答読み上げ中
         COMPLETED,        // 処理完了
-        ERROR             // エラー発生
+        ERROR,            // エラー発生
+        CHECKING_SENSORS  // センサー情報確認中
     }
 
     private var currentState = AppState.IDLE
@@ -71,6 +72,7 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
             AppState.SPEAKING -> R.string.status_speaking_response
             AppState.COMPLETED -> R.string.status_completed
             AppState.ERROR -> R.string.status_error_occurred
+            AppState.CHECKING_SENSORS -> R.string.status_checking_sensors
         }
         updateUIForState(newState)
         this.statusText.text = getString(statusText)
@@ -123,6 +125,15 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
                     startListeningButton.text = getString(R.string.start_listening)
                     askAiButton.isEnabled = currentRecognizedText.isNotEmpty()
                     cancelButton.isEnabled = false
+                }
+                AppState.CHECKING_SENSORS -> {
+                    startListeningButton.isEnabled = false
+                    askAiButton.isEnabled = false
+                    checkSensorsButton.isEnabled = false
+                    cancelButton.isEnabled = true
+                }
+                else -> {
+                    checkSensorsButton.isEnabled = true
                 }
             }
         }
@@ -181,7 +192,8 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         sensorInfoText = findViewById(R.id.sensorInfoText)
 
         checkSensorsButton.setOnClickListener {
-            updateSensorInfo()
+            updateState(AppState.CHECKING_SENSORS)
+            checkSensors()
         }
     }
 
@@ -359,13 +371,14 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         super.onResume()
         try {
             reinitializeSpeechRecognizer()
+            sensorManager.registerSensors()
             isListening = false
             isProcessing = false
             updateUIState()
         } catch (e: Exception) {
             Log.e("MainActivity", "Error in onResume: ${e.message}")
+            showToast("アプリの再開中にエラーが発生しました")
         }
-        sensorManager.registerSensors()
     }
 
     override fun onPause() {
@@ -455,13 +468,32 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         recognizedTextView.text = ""
     }
 
+    private fun checkSensors() {
+        if (!sensorManager.isDataReady()) {
+            showToast("センサーデータを取得中です...")
+            Handler(Looper.getMainLooper()).postDelayed({
+                updateSensorInfo()
+            }, 2000)
+            return
+        }
+        updateSensorInfo()
+    }
+
     private fun updateSensorInfo() {
-        sensorInfoText.visibility = View.VISIBLE
         val sensorInfo = sensorManager.getSensorInfo()
-        sensorInfoText.text = sensorInfo
-        
-        // センサー情報を読み上げ
-        val speakableInfo = sensorManager.getSpeakableInfo()
-        textToSpeech.speak(speakableInfo, TextToSpeech.QUEUE_FLUSH, null, null)
+        if (sensorInfo.isNotEmpty()) {
+            sensorInfoText.visibility = View.VISIBLE
+            sensorInfoText.text = sensorInfo
+            
+            val speakableInfo = sensorManager.getSpeakableInfo()
+            textToSpeech.speak(speakableInfo, TextToSpeech.QUEUE_FLUSH, null, "SENSORS")
+            
+            Handler(Looper.getMainLooper()).postDelayed({
+                updateState(AppState.COMPLETED)
+            }, 1000)
+        } else {
+            showToast("センサー情報を取得できません")
+            updateState(AppState.ERROR)
+        }
     }
 }

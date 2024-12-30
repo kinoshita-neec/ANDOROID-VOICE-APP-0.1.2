@@ -10,125 +10,49 @@
         android:id="@+id/statusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:text="@string/status_idle"
         android:textSize="18sp"
-        app:layout_constraintBottom_toTopOf="@+id/startListeningButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.071" />
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/startListeningButton"
-        style="@style/Widget.MaterialComponents.Button"
-        android:layout_width="wrap_content"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/chatRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:paddingHorizontal="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/controlsLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/statusText" />
+
+    <LinearLayout
+        android:id="@+id/controlsLayout"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/button_state"
-        android:enabled="true"
-        android:text="@string/start_listening"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.092"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.819" />
-
-    <TextView
-        android:id="@+id/recognizedText"
-        android:layout_width="384dp"
-        android:layout_height="113dp"
-        android:background="@android:color/white"
-        android:elevation="2dp"
-        android:gravity="top|start"
+        android:orientation="horizontal"
         android:padding="8dp"
-        android:scrollbars="vertical"
-        android:text="認識されたテキスト"
-        android:textIsSelectable="true"
-        android:fadeScrollbars="false"
-        android:verticalScrollbarPosition="right"
-        android:scrollbarStyle="insideOverlay"
-        android:textSize="14sp"
-        android:lineSpacingExtra="4dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.592"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.179" />
+        app:layout_constraintStart_toStartOf="parent">
 
-    <Button
-        android:id="@+id/askAiButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="176dp"
-        android:enabled="false"
-        android:text="@string/button_ask_ai"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.055"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/recognizedText"
-        app:layout_constraintVertical_bias="0.869" />
+        <Button
+            android:id="@+id/startListeningButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/start_listening" />
 
-    <TextView
-        android:id="@+id/aiResponseText"
-        android:layout_width="361dp"
-        android:layout_height="141dp"
-        android:layout_marginTop="16dp"
-        android:text="AIの応答"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/recognizedText"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <Button
-        android:id="@+id/cancelButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:enabled="false"
-        android:text="@string/button_cancel"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.922"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.945" />
-
-    <Button
-        android:id="@+id/checkSensorsButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:enabled="true"
-        android:text="@string/button_check_sensors"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.896"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.819" />
-
-    <TextView
-        android:id="@+id/sensorInfoText"
-        android:layout_width="384dp"
-        android:layout_height="113dp"
-        android:layout_margin="8dp"
-        android:padding="8dp"
-        android:background="@android:color/white"
-        android:elevation="2dp"
-        android:gravity="top|start"
-        android:scrollbars="vertical"
-        android:textIsSelectable="true"
-        android:fadeScrollbars="false"
-        android:verticalScrollbarPosition="right"
-        android:scrollbarStyle="insideOverlay"
-        android:textSize="14sp"
-        android:lineSpacingExtra="4dp"
-        android:text="@string/sensor_info_title"
-        app:layout_constraintTop_toBottomOf="@+id/aiResponseText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.592"
-        android:visibility="visible"/>
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:enabled="false"
+            android:text="@string/button_cancel" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
