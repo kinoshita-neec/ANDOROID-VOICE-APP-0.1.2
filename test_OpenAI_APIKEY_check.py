@@ -1,7 +1,7 @@
 import openai
 
 # APIキーを直接設定します
-api_key = "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"
+api_key = "ここにAPIキーを貼り付ける"
 
 # APIキーが正しく取得できているか確認します
 if not api_key:
