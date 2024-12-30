@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    // または
+    // repositoriesMode.set(RepositoriesMode.ALLOW_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+include ':app'
