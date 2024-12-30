@@ -7,20 +7,20 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.constraintlayout.widget.ConstraintLayout
 
-class ChatAdapter : RecyclerView.Adapter<ChatAdapter.MessageViewHolder>() {
+class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
     private val messages = mutableListOf<ChatMessage>()
 
-    class MessageViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    class ChatViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val messageText: TextView = view.findViewById(R.id.messageText)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_chat_message, parent, false)
-        return MessageViewHolder(view)
+        return ChatViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: ChatViewHolder, position: Int) {
         val message = messages[position]
         holder.messageText.apply {
             text = message.text
@@ -48,4 +48,14 @@ class ChatAdapter : RecyclerView.Adapter<ChatAdapter.MessageViewHolder>() {
         messages.add(message)
         notifyItemInserted(messages.size - 1)
     }
+
+    fun clear() {
+        messages.clear()
+        notifyDataSetChanged()
+    }
 }
+
+data class ChatMessage(
+    val text: String,
+    val isFromUser: Boolean
+)
