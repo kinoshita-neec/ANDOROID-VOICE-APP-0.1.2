@@ -1,3 +1,28 @@
+/**
+ * SpeechRecognitionManager - 音声認識管理クラス
+ * 
+ * このクラスはAndroidの音声認識APIをラップし、
+ * 継続的な音声認識とその結果のハンドリングを提供します。
+ * 
+ * 主な機能：
+ * - 日本語音声認識の制御
+ * - 連続音声認識モード
+ * - 部分認識結果のリアルタイム取得
+ * - エラー処理とリカバリー機能
+ * 
+ * 使用例：
+ * ```
+ * val manager = SpeechRecognitionManager(context, object : SpeechRecognitionCallback {
+ *     override fun onRecognitionResult(text: String) {
+ *         // 認識結果の処理
+ *     }
+ *     // 他のコールバックメソッド...
+ * })
+ * ```
+ * 
+ * @property context アプリケーションのContext
+ * @property callback 音声認識結果を受け取るコールバック
+ */
 package com.example.voiceapp
 
 import android.content.Context
@@ -32,12 +57,12 @@ class SpeechRecognitionManager(
     companion object {
         /** 無音検出のタイムアウト時間 (12秒) */
         private const val SILENCE_TIMEOUT = 12000L
-        /** 最小の発話時間 (2秒) */
-        private const val MIN_SPEECH_LENGTH = 2000L
-        /** 部分認識結果の更新遅延時間 (2秒) */
-        private const val PARTIAL_RESULTS_DELAY = 2000L
+        /** 最小の発話時間 (0.5秒に短縮) */
+        private const val MIN_SPEECH_LENGTH = 500L  // 2000Lから500Lに変更
+        /** 部分認識結果の更新遅延時間 (1秒に短縮) */
+        private const val PARTIAL_RESULTS_DELAY = 1000L  // 2000Lから1000Lに変更
         private const val NO_BEEP_SETTING = "android.speech.extra.BEEP_ENABLED"
-        private const val NEXT_RECOGNITION_DELAY = 3000L // 次の認識開始までの待ち時間を3秒に延長
+        private const val NEXT_RECOGNITION_DELAY = 1000L // 3000Lから1000Lに変更
     }
 
     private var speechRecognizer: SpeechRecognizer? = null
@@ -117,17 +142,13 @@ class SpeechRecognitionManager(
             
             results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.let {
                 if (it.isNotEmpty()) {
-                    val elapsedTime = System.currentTimeMillis() - speechStartTime
-                    // 最小発話時間以上経過している場合のみ結果を返す
-                    if (elapsedTime >= MIN_SPEECH_LENGTH) {
-                        callback.onRecognitionResult(it[0])
-                    }
+                    callback.onRecognitionResult(it[0])
                     
                     // 連続認識モードの場合、次の認識を開始
                     if (shouldContinue && isListening) {
                         Handler(Looper.getMainLooper()).postDelayed({
                             startListeningInternal()
-                        }, NEXT_RECOGNITION_DELAY) // 3秒後に次の認識を開始
+                        }, NEXT_RECOGNITION_DELAY)
                     }
                 }
             }

@@ -69,8 +69,7 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         // TextToSpeechManagerの初期化と読み上げ
         textToSpeechManager = TextToSpeechManager(this)
         textToSpeechManager.initialize {
-            // 初期化完了後にウェルカムメッセージを読み上げ
-            textToSpeechManager.speak(getString(R.string.welcome_message))
+            startWelcomeSequence()
         }
 
         // SpeechRecognitionManagerの初期化
@@ -84,21 +83,16 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         }
 
         aiManager = AIManager(this)
-        setupButtons()
     }
 
-    private fun setupButtons() {
-        binding.startListeningButton.setOnClickListener {
-            if (!speechRecognitionManager.isListening()) {
-                checkPermissionAndStartListening()
-            } else {
-                speechRecognitionManager.stopListening()
-            }
-        }
-
-        binding.cancelButton.setOnClickListener {
-            speechRecognitionManager.stopListening()
-        }
+    private fun startWelcomeSequence() {
+        // ウェルカムメッセージを読み上げ
+        textToSpeechManager.speak(getString(R.string.welcome_message))
+        
+        // 読み上げ完了を待ってから音声認識を開始（3秒後）
+        Handler(Looper.getMainLooper()).postDelayed({
+            checkPermissionAndStartListening()
+        }, 3000)
     }
 
     /**
@@ -129,29 +123,9 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     private fun updateUIState(newState: UIState) {
         currentState = newState
         
-        // ボタンの状態更新
-        binding.startListeningButton.setImageResource(
-            if (currentState.isListening) 
-                android.R.drawable.ic_media_pause 
-            else 
-                android.R.drawable.ic_btn_speak_now
-        )
-        
-        // キャンセルボタンの有効/無効
-        binding.cancelButton.isEnabled = currentState.isCancelEnabled
-        
         // エラーメッセージの表示
         currentState.error?.let {
             Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
-        }
-        
-        // 処理中の表示
-        if (currentState.isProcessing) {
-            binding.startListeningButton.isEnabled = false
-            // TODO: プログレスインジケータの表示
-        } else {
-            binding.startListeningButton.isEnabled = true
-            // TODO: プログレスインジケータの非表示
         }
     }
 
@@ -159,7 +133,6 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     override fun onRecognitionStarted() {
         updateUIState(currentState.copy(
             isListening = true,
-            isCancelEnabled = true,
             error = null
         ))
     }
@@ -176,7 +149,6 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     override fun onRecognitionError(errorMessage: String) {
         updateUIState(currentState.copy(
             isListening = false,
-            isCancelEnabled = false,
             error = errorMessage
         ))
     }

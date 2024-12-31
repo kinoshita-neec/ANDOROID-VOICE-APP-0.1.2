@@ -1,3 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+音声チャットアプリケーションの構成ファイル
+必要な権限：
+- 音声録音（RECORD_AUDIO）
+- インターネット接続（INTERNET）
+- ネットワーク状態の確認（ACCESS_NETWORK_STATE）
+必須ハードウェア：
+- マイク
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.voiceapp">
 

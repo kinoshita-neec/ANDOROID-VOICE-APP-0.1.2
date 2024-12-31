@@ -1,3 +1,12 @@
+/**
+ * チャットメッセージ表示用のRecyclerViewアダプター
+ * 
+ * 主な機能：
+ * - チャットメッセージのリスト管理
+ * - メッセージ表示用のViewHolder管理
+ * - ユーザーとAIのメッセージを区別して表示
+ * - メッセージ追加時のアニメーション効果
+ */
 package com.example.voiceapp
 
 import android.view.LayoutInflater
@@ -16,7 +25,7 @@ class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_chat_message, parent, false)
+            .inflate(R.layout.chat_message_item, parent, false)
         return ChatViewHolder(view)
     }
 
@@ -25,18 +34,18 @@ class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
         holder.messageText.apply {
             text = message.text
             
-            // メッセージの位置とスタイルを設定
             val params = layoutParams as ConstraintLayout.LayoutParams
             if (message.isUser) {
-                setBackgroundResource(R.drawable.chat_bubble_user)
-                params.horizontalBias = 1f  // 右寄せ
+                setBackgroundResource(R.drawable.chat_bubble)
+                isActivated = true  // ユーザーメッセージ用のスタイル
+                params.horizontalBias = 1f
             } else {
-                setBackgroundResource(R.drawable.chat_bubble_ai)
-                params.horizontalBias = 0f  // 左寄せ
+                setBackgroundResource(R.drawable.chat_bubble)
+                isActivated = false  // AIメッセージ用のスタイル
+                params.horizontalBias = 0f
             }
             layoutParams = params
             
-            // アニメーションの追加（オプション）
             alpha = 0f
             animate().alpha(1f).setDuration(200).start()
         }
@@ -54,8 +63,3 @@ class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
         notifyDataSetChanged()
     }
 }
-
-data class ChatMessage(
-    val text: String,
-    val isFromUser: Boolean
-)

@@ -2,26 +2,16 @@ package com.example.voiceapp
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.os.Bundle
 import android.util.Log
-import java.util.*
+import java.util.Locale
 
-/**
- * テキスト読み上げを管理するクラス
- * 
- * 機能：
- * - 日本語テキストの音声合成
- * - 初期化状態の管理
- * - 読み上げ開始/停止の制御
- * 
- * 使用上の注意：
- * - 初期化完了前の speak 呼び出しは無視される
- * - 複数の読み上げリクエストは後のものが優先される
- * - アプリ終了時に必ず shutdown を呼び出す
- */
 class TextToSpeechManager(private val context: Context) {
     private var tts: TextToSpeech? = null
     private var isInitialized = false
     private var onInitializedCallback: (() -> Unit)? = null
+    private var onUtteranceComplete: (() -> Unit)? = null
 
     fun initialize(callback: (() -> Unit)? = null) {
         onInitializedCallback = callback
@@ -40,7 +30,7 @@ class TextToSpeechManager(private val context: Context) {
         }
     }
 
-    fun speak(text: String) {
+    fun speak(text: String, onComplete: (() -> Unit)? = null) {
         if (!isInitialized) {
             Log.w("TextToSpeechManager", "TextToSpeech not initialized yet")
             return
@@ -50,9 +40,17 @@ class TextToSpeechManager(private val context: Context) {
             if (it.isSpeaking) {
                 it.stop()
             }
-            it.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-        } ?: run {
-            Log.e("TextToSpeechManager", "TextToSpeech is null")
+            val utteranceId = "utterance_${System.currentTimeMillis()}"
+            it.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {}
+                override fun onDone(utteranceId: String?) {
+                    onComplete?.invoke()
+                }
+                override fun onError(utteranceId: String?) {}
+            })
+            val params = Bundle()
+            params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+            it.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
         }
     }
 
@@ -60,5 +58,6 @@ class TextToSpeechManager(private val context: Context) {
         tts?.stop()
         tts?.shutdown()
         tts = null
+        isInitialized = false
     }
 }
