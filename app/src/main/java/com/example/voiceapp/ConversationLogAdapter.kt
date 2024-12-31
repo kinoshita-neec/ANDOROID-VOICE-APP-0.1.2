@@ -9,11 +9,14 @@ import java.util.Date
 import java.util.Locale
 
 class ConversationLogAdapter : RecyclerView.Adapter<ConversationLogAdapter.ViewHolder>() {
-    private val messages = mutableListOf<ChatMessage>()
+    private var messages: MutableList<ChatMessage> = mutableListOf()
+    private val selectedItems = mutableSetOf<Int>()
 
     class ViewHolder(private val binding: ItemConversationLogBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: ChatMessage) {
+        fun bind(message: ChatMessage, isSelected: Boolean, onCheckChanged: (Boolean) -> Unit) {
             binding.apply {
+                checkBox.isChecked = isSelected
+                checkBox.setOnCheckedChangeListener { _, isChecked -> onCheckChanged(isChecked) }
                 senderText.text = if (message.isUser) "ユーザー" else "AI"
                 messageText.text = message.message
                 timestampText.text = DATE_FORMAT.format(Date(message.timestamp))
@@ -29,14 +32,48 @@ class ConversationLogAdapter : RecyclerView.Adapter<ConversationLogAdapter.ViewH
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(messages[position])
+        holder.bind(messages[position], selectedItems.contains(position)) { isChecked ->
+            if (isChecked) {
+                selectedItems.add(position)
+            } else {
+                selectedItems.remove(position)
+            }
+        }
     }
 
     override fun getItemCount() = messages.size
 
-    fun setMessages(newMessages: List<ChatMessage>) {
-        messages.clear()
-        messages.addAll(newMessages.sortedByDescending { it.timestamp })
+    fun setMessages(messages: List<ChatMessage>) {
+        this.messages = messages.toMutableList()
+        notifyDataSetChanged()
+    }
+
+    fun getSelectedMessages(): List<ChatMessage> {
+        // 選択されたメッセージを返すロジックを実装
+        return listOf()
+    }
+
+    fun updateMessages(messages: List<ChatMessage>) {
+        setMessages(messages)
+    }
+
+    fun removeMessageAt(position: Int) {
+        messages.removeAt(position)
+        notifyItemRemoved(position)
+    }
+
+    fun removeSelectedMessages() {
+        selectedItems.sortedDescending().forEach { position ->
+            removeMessageAt(position)
+        }
+        selectedItems.clear()
+    }
+
+    fun selectAll(isChecked: Boolean) {
+        selectedItems.clear()
+        if (isChecked) {
+            selectedItems.addAll(messages.indices)
+        }
         notifyDataSetChanged()
     }
 

@@ -107,6 +107,7 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         initializeSpeechRecognition()
 
         chatLogger = ChatLogger(this)
+        updatePromptPreview()
     }
 
     override fun onResume() {
@@ -238,8 +239,8 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         ))
         chatAdapter.addMessage(ChatMessage(text, true))
         binding.chatRecyclerView.scrollToPosition(chatAdapter.itemCount - 1)
-        // chatLogger.saveMessage(ChatMessage(text, true)) // この行を削除
         getAIResponse(text)
+        updatePromptPreview()  // プロンプトプレビューを更新
     }
 
     override fun onRecognitionError(errorMessage: String) {
@@ -279,11 +280,10 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
                 updateUIState(currentState.copy(isProcessing = false))
                 pendingRecognitionStart = false
 
-                // AIの応答を読み上げ、完全に完了してから次の処理へ
                 textToSpeechManager.speak(response) {
-                    Log.d("MainActivity", "AI response TTS completed, waiting to ensure completion")
                     ensureSpeechRecognitionStart()
                 }
+                updatePromptPreview()  // プロンプトプレビューを更新
             } catch (e: Exception) {
                 updateUIState(currentState.copy(
                     isProcessing = false,
@@ -328,5 +328,10 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
                 else -> false
             }
         }
+    }
+
+    private fun updatePromptPreview() {
+        val promptPreview = PromptPreviewFragment.getSystemPrompt(this)
+        binding.promptPreviewContent.text = promptPreview
     }
 }

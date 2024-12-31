@@ -19,6 +19,14 @@ class ChatLogger(context: Context) {
         }
     }
 
+    fun saveMessages(messages: List<ChatMessage>) {
+        try {
+            prefs.edit().putString("messages", gson.toJson(messages)).apply()
+        } catch (e: Exception) {
+            Log.e("ChatLogger", "Error saving messages", e)
+        }
+    }
+
     fun getMessages(): List<ChatMessage> {
         return try {
             val json = prefs.getString("messages", "[]")
@@ -32,5 +40,15 @@ class ChatLogger(context: Context) {
 
     fun clearMessages() {
         prefs.edit().clear().apply()
+    }
+
+    fun deleteMessages(messagesToDelete: List<ChatMessage>) {
+        try {
+            val messages = getMessages().toMutableList()
+            messages.removeAll(messagesToDelete)
+            prefs.edit().putString("messages", gson.toJson(messages)).apply()
+        } catch (e: Exception) {
+            Log.e("ChatLogger", "Error deleting messages", e)
+        }
     }
 }

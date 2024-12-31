@@ -86,9 +86,11 @@ class AIManager(private val context: Context) {
         """.trimIndent())
     }
 
+
     private fun getSystemPrompt(): String {
-        return PromptPreviewFragment.getSystemPrompt(context)
+        return PromptPreviewFragment.getSystemPrompt(context).trimIndent().replace("\n", " ")
     }
+
 
     suspend fun getAIResponse(prompt: String): String {
         return withContext(Dispatchers.IO) {
@@ -103,18 +105,18 @@ class AIManager(private val context: Context) {
                         "messages": [
                             {
                                 "role": "system",
-                                "content": "${getSystemPrompt().replace("\"", "\\\"").replace("\n", "\\n")}"
+                                "content": "${getSystemPrompt().replace("\"", "\\\"").replace("\n", " ")}"
                             },
                             {
                                 "role": "user",
-                                "content": "${prompt.replace("\"", "\\\"").replace("\n", "\\n")}"
+                                "content": "${prompt.replace("\"", "\\\"").replace("\n", " ")}"
                             }
                         ],
                         "temperature": 0.7
                     }
                 """.trimIndent()
 
-                Log.d("AIManager", "Request Body: $requestBody")
+                Log.d("AIManager", "Request Body: ${requestBody.trim()}")  // トリムしてログに出力
                 Log.d("AIManager", "Using API Key: ${apiKey.take(5)}...")
 
                 val request = Request.Builder()
