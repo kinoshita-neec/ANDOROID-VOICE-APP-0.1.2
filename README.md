@@ -86,8 +86,9 @@ flowchart TD
         C -->|生成AIとの通信| D[AIからの応答]
         D -->|テキスト読み上げ| E[TextToSpeech]
     end
-    subgraph　プロンプト生成
-        E[エージェント設定] F[ユーザ設定] --> G[プロンプトレビュー]
+    subgraph プロンプト生成
+        E[エージェント設定] --> F[ユーザ設定]
+        F --> G[プロンプトレビュー]
         G --> C
     end
 ```
