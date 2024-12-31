@@ -77,6 +77,12 @@ class SpeechRecognitionManager(
         }
     }
 
+    @Volatile
+    private var isRecognitionPending = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var isStoppingInProgress = false
+    private val recognitionLock = Object()
+
     interface SpeechRecognitionCallback {
         fun onRecognitionStarted()
         fun onRecognitionResult(text: String)
@@ -156,20 +162,26 @@ class SpeechRecognitionManager(
 
         // エラー発生時
         override fun onError(error: Int) {
-            val errorMessage = when (error) {
-                SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "ネットワークタイムアウト"
-                SpeechRecognizer.ERROR_NETWORK -> "ネットワークエラー"
-                SpeechRecognizer.ERROR_AUDIO -> "音声入力エラー"
-                SpeechRecognizer.ERROR_SERVER -> "サーバーエラー"
-                SpeechRecognizer.ERROR_CLIENT -> "クライアントエラー"
-                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "音声入力タイムアウト"
-                SpeechRecognizer.ERROR_NO_MATCH -> "音声認識失敗"
-                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "認識エンジンがビジー"
-                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "権限不足"
-                else -> "不明なエラー"
+            // TODO: エラーコード5（クライアントエラー）の原因を調査し、適切な対処を実装する必要がある
+            // 現状では音声認識の停止時に必ず発生するため、一時的に通知を抑制
+            if (error != SpeechRecognizer.ERROR_CLIENT) {
+                val errorMessage = when (error) {
+                    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "ネットワークタイムアウト"
+                    SpeechRecognizer.ERROR_NETWORK -> "ネットワークエラー"
+                    SpeechRecognizer.ERROR_AUDIO -> "音声入力エラー"
+                    SpeechRecognizer.ERROR_SERVER -> "サーバーエラー"
+                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "音声入力タイムアウト"
+                    SpeechRecognizer.ERROR_NO_MATCH -> "音声認識失敗"
+                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "認識エンジンがビジー"
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "権限不足"
+                    else -> "不明なエラー"
+                }
+                Log.e("SpeechRecognitionManager", "音声認識エラー: $error - $errorMessage")
+                callback.onRecognitionError(errorMessage)
+            } else {
+                // クライアントエラーのログは残すが、コールバックは呼び出さない
+                Log.d("SpeechRecognitionManager", "Ignoring client error during recognition cleanup")
             }
-            Log.e("SpeechRecognitionManager", "音声認識エラー: $error - $errorMessage")
-            callback.onRecognitionError(errorMessage)
         }
 
         override fun onBufferReceived(buffer: ByteArray?) {}
@@ -196,8 +208,49 @@ class SpeechRecognitionManager(
 
     @Synchronized
     fun startListening() {
-        shouldContinue = true
-        startListeningInternal()
+        Log.d("SpeechRecognitionManager", "Start listening requested. Current state: pending=$isRecognitionPending, listening=$isListening, stopping=$isStoppingInProgress")
+        
+        synchronized(recognitionLock) {
+            if (isStoppingInProgress) {
+                Log.d("SpeechRecognitionManager", "Stop in progress, delaying start")
+                mainHandler.postDelayed({ startListening() }, 500)
+                return
+            }
+
+            if (isRecognitionPending || isListening) {
+                Log.d("SpeechRecognitionManager", "Need to stop previous recognition")
+                stopListening()
+                mainHandler.postDelayed({ startListening() }, 1000)
+                return
+            }
+
+            prepareAndStartListening()
+        }
+    }
+
+    private fun prepareAndStartListening() {
+        synchronized(recognitionLock) {
+            if (isStoppingInProgress || isListening) {
+                Log.d("SpeechRecognitionManager", "Cannot start while stopping or already listening")
+                return
+            }
+
+            isRecognitionPending = true
+            shouldContinue = true
+        }
+
+        // 新しいSpeechRecognizerインスタンスを作成
+        initializeSpeechRecognizer()
+
+        mainHandler.postDelayed({
+            synchronized(recognitionLock) {
+                if (shouldContinue && !isStoppingInProgress) {
+                    isRecognitionPending = false
+                    Log.d("SpeechRecognitionManager", "Starting delayed recognition")
+                    startListeningInternal()
+                }
+            }
+        }, 1000)
     }
 
     /**
@@ -212,13 +265,32 @@ class SpeechRecognitionManager(
      * 注意：ビープ音の無効化は端末依存で完全には機能しない
      */
     private fun startListeningInternal() {
-        if (!shouldContinue) return
+        if (!shouldContinue) {
+            Log.d("SpeechRecognitionManager", "Recognition cancelled")
+            return
+        }
+
+        if (isListening) {
+            Log.d("SpeechRecognitionManager", "Already listening")
+            return
+        }
+
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             callback.onRecognitionError("音声認識が利用できません")
             return
         }
 
         try {
+            if (!shouldContinue || isListening) {
+                Log.d("SpeechRecognitionManager", "Recognition cancelled or already listening")
+                return
+            }
+
+            if (speechRecognizer == null) {
+                Log.d("SpeechRecognitionManager", "Reinitializing recognizer")
+                initializeSpeechRecognizer()
+            }
+
             Handler(Looper.getMainLooper()).postDelayed({
                 if (!shouldContinue) return@postDelayed
 
@@ -250,36 +322,73 @@ class SpeechRecognitionManager(
                 isListening = true
                 speechStartTime = System.currentTimeMillis()
                 lastPartialResult = ""
+                
+                Log.d("SpeechRecognitionManager", "Starting recognition with fresh state")
                 speechRecognizer?.startListening(intent)
             }, 500)
         } catch (e: Exception) {
-            Log.e("SpeechRecognitionManager", "Error starting speech recognition: ${e.message}")
-            callback.onRecognitionError("音声認識の開始に失敗しました")
+            Log.e("SpeechRecognitionManager", "Error starting recognition: ${e.message}")
             isListening = false
+            isRecognitionPending = false
+            callback.onRecognitionError("音声認識の開始に失敗しました")
+            // エラー時は再初期化を試みる
+            mainHandler.postDelayed({
+                reinitialize()
+            }, 1000)
         }
     }
 
     @Synchronized
     fun stopListening() {
-        handler.removeCallbacks(partialResultRunnable)
-        shouldContinue = false
-        isListening = false
+        synchronized(recognitionLock) {
+            if (isStoppingInProgress) {
+                Log.d("SpeechRecognitionManager", "Stop already in progress")
+                return
+            }
+
+            isStoppingInProgress = true
+            Log.d("SpeechRecognitionManager", "Stopping recognition")
+            isRecognitionPending = false
+            shouldContinue = false
+            isListening = false
+        }
         
         try {
             speechRecognizer?.let { recognizer ->
                 recognizer.stopListening()
-                Handler(Looper.getMainLooper()).postDelayed({
-                    recognizer.cancel()
-                }, 200)
+                mainHandler.postDelayed({
+                    try {
+                        recognizer.cancel()
+                        recognizer.destroy()
+                        speechRecognizer = null
+                        synchronized(recognitionLock) {
+                            isStoppingInProgress = false
+                        }
+                        Log.d("SpeechRecognitionManager", "Recognition cleanup completed")
+                    } catch (e: Exception) {
+                        Log.e("SpeechRecognitionManager", "Error in cleanup: ${e.message}")
+                        synchronized(recognitionLock) {
+                            isStoppingInProgress = false
+                        }
+                    }
+                }, 1000)
+            } ?: run {
+                synchronized(recognitionLock) {
+                    isStoppingInProgress = false
+                }
             }
         } catch (e: Exception) {
             Log.e("SpeechRecognitionManager", "Error stopping recognition: ${e.message}")
+            synchronized(recognitionLock) {
+                isStoppingInProgress = false
+            }
         }
     }
 
     fun reinitialize() {
-        destroy()
-        Handler(Looper.getMainLooper()).postDelayed({
+        Log.d("SpeechRecognitionManager", "Reinitializing speech recognition")
+        stopListening()
+        mainHandler.postDelayed({
             initializeSpeechRecognizer()
         }, 500)
     }

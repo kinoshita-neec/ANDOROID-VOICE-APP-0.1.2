@@ -1,6 +1,8 @@
 package com.example.voiceapp
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.os.Bundle
@@ -12,6 +14,12 @@ class TextToSpeechManager(private val context: Context) {
     private var isInitialized = false
     private var onInitializedCallback: (() -> Unit)? = null
     private var onUtteranceComplete: (() -> Unit)? = null
+
+    @Volatile
+    private var isSpeakingInProgress = false
+    private val lock = Object()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var currentUtteranceId: String? = null
 
     fun initialize(callback: (() -> Unit)? = null) {
         onInitializedCallback = callback
@@ -33,24 +41,84 @@ class TextToSpeechManager(private val context: Context) {
     fun speak(text: String, onComplete: (() -> Unit)? = null) {
         if (!isInitialized) {
             Log.w("TextToSpeechManager", "TextToSpeech not initialized yet")
+            onComplete?.invoke()
             return
         }
 
-        tts?.let {
-            if (it.isSpeaking) {
-                it.stop()
+        synchronized(lock) {
+            isSpeakingInProgress = true
+            currentUtteranceId = "utterance_${System.currentTimeMillis()}"
+        }
+
+        Log.d("TextToSpeechManager", "Preparing to speak: $currentUtteranceId")
+
+        tts?.let { ttsInstance ->
+            if (ttsInstance.isSpeaking) {
+                Log.d("TextToSpeechManager", "Stopping current speech")
+                ttsInstance.stop()
+                mainHandler.postDelayed({
+                    startSpeaking(ttsInstance, text, onComplete)
+                }, 200)
+            } else {
+                startSpeaking(ttsInstance, text, onComplete)
             }
-            val utteranceId = "utterance_${System.currentTimeMillis()}"
-            it.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {}
-                override fun onDone(utteranceId: String?) {
+        } ?: run {
+            markSpeakingComplete()
+            onComplete?.invoke()
+        }
+    }
+
+    private fun startSpeaking(tts: TextToSpeech, text: String, onComplete: (() -> Unit)?) {
+        val utteranceId = currentUtteranceId ?: return
+        
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(id: String?) {
+                Log.d("TextToSpeechManager", "Started speaking: $id")
+            }
+            
+            override fun onDone(id: String?) {
+                Log.d("TextToSpeechManager", "Finished speaking: $id")
+                if (id == utteranceId) {
+                    ensureSpeakingComplete(onComplete)
+                }
+            }
+            
+            override fun onError(id: String?) {
+                Log.e("TextToSpeechManager", "Error speaking: $id")
+                if (id == utteranceId) {
+                    markSpeakingComplete()
+                    mainHandler.post { onComplete?.invoke() }
+                }
+            }
+        })
+
+        val params = Bundle()
+        params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+    }
+
+    private fun ensureSpeakingComplete(onComplete: (() -> Unit)?) {
+        mainHandler.postDelayed({
+            synchronized(lock) {
+                if (currentUtteranceId != null && !tts?.isSpeaking!!) {
+                    markSpeakingComplete()
+                    Log.d("TextToSpeechManager", "Speech completion confirmed")
                     onComplete?.invoke()
                 }
-                override fun onError(utteranceId: String?) {}
-            })
-            val params = Bundle()
-            params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
-            it.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+            }
+        }, 500)
+    }
+
+    private fun markSpeakingComplete() {
+        synchronized(lock) {
+            isSpeakingInProgress = false
+            currentUtteranceId = null
+        }
+    }
+
+    fun isSpeaking(): Boolean {
+        synchronized(lock) {
+            return isSpeakingInProgress || (tts?.isSpeaking ?: false)
         }
     }
 

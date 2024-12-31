@@ -86,6 +86,10 @@ class AIManager(private val context: Context) {
         """.trimIndent())
     }
 
+    private fun getSystemPrompt(): String {
+        return PromptPreviewFragment.getSystemPrompt(context)
+    }
+
     suspend fun getAIResponse(prompt: String): String {
         return withContext(Dispatchers.IO) {
             try {
@@ -99,7 +103,7 @@ class AIManager(private val context: Context) {
                         "messages": [
                             {
                                 "role": "system",
-                                "content": "You are a helpful assistant."
+                                "content": "${getSystemPrompt().replace("\"", "\\\"").replace("\n", "\\n")}"
                             },
                             {
                                 "role": "user",

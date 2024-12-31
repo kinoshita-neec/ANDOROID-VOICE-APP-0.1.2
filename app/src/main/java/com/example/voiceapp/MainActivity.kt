@@ -41,6 +41,10 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var textToSpeechManager: TextToSpeechManager
     private var currentState = UIState()
+    private var isReturningFromSettings = false
+    private var isSpeechRecognitionInitialized = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pendingRecognitionStart = false
 
     /**
      * アクティビティの初期化
@@ -66,14 +70,11 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // TextToSpeechManagerの初期化と読み上げ
+        // TextToSpeechManagerの初期化のみ行い、初期化完了時にwelcomeを開始
         textToSpeechManager = TextToSpeechManager(this)
         textToSpeechManager.initialize {
             startWelcomeSequence()
         }
-
-        // SpeechRecognitionManagerの初期化
-        speechRecognitionManager = SpeechRecognitionManager(this, this)
 
         // チャットアダプターの初期化
         chatAdapter = ChatAdapter()
@@ -83,16 +84,87 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         }
 
         aiManager = AIManager(this)
+
+        binding.settingsButton.setOnClickListener {
+            isReturningFromSettings = true
+            // 音声認識を停止
+            speechRecognitionManager.stopListening()
+            // 設定画面に遷移
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        // SpeechRecognitionManagerは初期化のみ行う
+        initializeSpeechRecognition()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isReturningFromSettings) {
+            isReturningFromSettings = false
+            startWelcomeSequence()
+        }
     }
 
     private fun startWelcomeSequence() {
-        // ウェルカムメッセージを読み上げ
-        textToSpeechManager.speak(getString(R.string.welcome_message))
+        val welcomeMessage = getSharedPreferences("agent_settings", Context.MODE_PRIVATE)
+            ?.getString("agent_name", "あすか")?.let { name ->
+                "${name}が戻ってきました。ご用件をどうぞ。"
+            } ?: getString(R.string.welcome_message)
+
+        Log.d("MainActivity", "Starting welcome sequence with message: $welcomeMessage")
+        pendingRecognitionStart = false
         
-        // 読み上げ完了を待ってから音声認識を開始（3秒後）
-        Handler(Looper.getMainLooper()).postDelayed({
-            checkPermissionAndStartListening()
-        }, 3000)
+        // 読み上げ完了後にSpeechRecognitionManagerを初期化し、音声認識を開始
+        textToSpeechManager.speak(welcomeMessage) {
+            Log.d("MainActivity", "Welcome TTS completed, waiting to ensure completion")
+            ensureSpeechRecognitionStart()
+        }
+    }
+
+    private fun ensureSpeechRecognitionStart() {
+        if (pendingRecognitionStart) {
+            Log.d("MainActivity", "Recognition start already pending")
+            return
+        }
+        pendingRecognitionStart = true
+
+        fun checkAndStart() {
+            if (!textToSpeechManager.isSpeaking()) {
+                Log.d("MainActivity", "Speech completed, starting recognition")
+                mainHandler.postDelayed({
+                    if (!isReturningFromSettings && !textToSpeechManager.isSpeaking()) {
+                        pendingRecognitionStart = false
+                        checkPermissionAndStartListening()
+                    }
+                }, 1000)
+            } else {
+                Log.d("MainActivity", "Still speaking, waiting...")
+                mainHandler.postDelayed({ checkAndStart() }, 100)
+            }
+        }
+
+        checkAndStart()
+    }
+
+    private fun waitForSpeechCompletion(onComplete: () -> Unit) {
+        fun checkSpeechStatus() {
+            if (!textToSpeechManager.isSpeaking()) {
+                Log.d("MainActivity", "Speech completion confirmed")
+                Handler(Looper.getMainLooper()).postDelayed({
+                    onComplete()
+                }, 500)
+            } else {
+                Log.d("MainActivity", "Still speaking, waiting...")
+                Handler(Looper.getMainLooper()).postDelayed({ checkSpeechStatus() }, 100)
+            }
+        }
+        checkSpeechStatus()
+    }
+
+    private fun initializeSpeechRecognition() {
+        Log.d("MainActivity", "Initializing speech recognition")
+        speechRecognitionManager = SpeechRecognitionManager(this, this)
+        isSpeechRecognitionInitialized = true
     }
 
     /**
@@ -103,12 +175,23 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
      * 3. 権限がある場合は音声認識を開始
      */
     private fun checkPermissionAndStartListening() {
+        Log.d("MainActivity", "Checking permission before starting recognition")
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), PERMISSION_REQUEST_CODE)
             return
         }
-        updateUIState(currentState.copy(isListening = true))
-        speechRecognitionManager.startListening()
+        
+        // 読み上げが完全に終了していることを確認
+        if (!textToSpeechManager.isSpeaking()) {
+            Log.d("MainActivity", "Actually starting speech recognition")
+            updateUIState(currentState.copy(isListening = true))
+            speechRecognitionManager.startListening()
+        } else {
+            Log.d("MainActivity", "Still speaking, delaying recognition")
+            Handler(Looper.getMainLooper()).postDelayed({
+                checkPermissionAndStartListening()
+            }, 500)
+        }
     }
 
     /**
@@ -175,9 +258,15 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
                 }
                 chatAdapter.addMessage(ChatMessage(response, false))
                 binding.chatRecyclerView.scrollToPosition(chatAdapter.itemCount - 1)
-                updateUIState(currentState.copy(
-                    isProcessing = false
-                ))
+                
+                updateUIState(currentState.copy(isProcessing = false))
+                pendingRecognitionStart = false
+
+                // AIの応答を読み上げ、完全に完了してから次の処理へ
+                textToSpeechManager.speak(response) {
+                    Log.d("MainActivity", "AI response TTS completed, waiting to ensure completion")
+                    ensureSpeechRecognitionStart()
+                }
             } catch (e: Exception) {
                 updateUIState(currentState.copy(
                     isProcessing = false,
@@ -206,5 +295,6 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 1
+        private const val SPEECH_START_DELAY = 1000L  // ウェルカムメッセージ読み上げ完了後の待機時間を1秒に変更
     }
 }
