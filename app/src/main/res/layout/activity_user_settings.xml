@@ -1,3 +1,10 @@
+<!-- 
+このレイアウトファイルはユーザー設定画面を定義します。
+主な構成要素：
+1. ユーザーの名前、年齢、性別、趣味の入力フィールド
+2. 設定を保存するボタン
+このレイアウトはUserSettingsFragmentから参照されます。
+-->
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"

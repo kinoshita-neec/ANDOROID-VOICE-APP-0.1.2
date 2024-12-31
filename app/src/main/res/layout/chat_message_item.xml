@@ -1,3 +1,9 @@
+<!-- 
+このレイアウトファイルはチャットメッセージの表示を定義します。
+主な構成要素：
+1. メッセージを表示するTextView
+このレイアウトはChatAdapterから参照されます。
+-->
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"

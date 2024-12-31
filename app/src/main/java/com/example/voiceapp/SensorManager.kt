@@ -1,3 +1,24 @@
+/**
+ * SensorManager - センサー管理クラス
+ * 
+ * このクラスはAndroidのセンサーAPIをラップし、
+ * 温度、湿度、照度、気圧のセンサー値を取得します。
+ * 
+ * 主な機能：
+ * - センサーの登録と解除
+ * - センサー値の取得と更新
+ * - センサー値の有効性チェック
+ * - センサー情報の取得（テキスト形式および読み上げ形式）
+ * 
+ * 使用例：
+ * ```
+ * val sensorManager = SensorManager(context)
+ * sensorManager.registerSensors()
+ * val info = sensorManager.getSensorInfo()
+ * ```
+ * 
+ * @property context アプリケーションのContext
+ */
 package com.example.voiceapp
 
 import android.content.Context

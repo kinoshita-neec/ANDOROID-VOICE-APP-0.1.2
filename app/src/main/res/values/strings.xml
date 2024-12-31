@@ -1,3 +1,10 @@
+<!-- 
+アプリケーションで使用される文字列リソース
+主な構成要素：
+- アプリ名
+- 各種メッセージやプロンプト
+この文字列リソースはアプリケーション全体で使用されます。
+-->
 <resources>
     <string name="app_name">音声対話アプリ</string>
     <string name="welcome_message">ようこそ音声対話アプリへ。</string>

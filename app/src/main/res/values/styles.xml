@@ -1,3 +1,10 @@
+<!-- 
+アプリケーションのテーマを定義するスタイルリソース
+主な構成要素：
+- アプリ全体のテーマ設定
+- カラーパレットの定義
+このスタイルはアプリケーション全体で使用されます。
+-->
 <resources>
     <!-- Base application theme. -->
     <style name="Theme.VoiceApp" parent="Theme.MaterialComponents.DayNight.DarkActionBar">

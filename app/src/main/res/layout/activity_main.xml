@@ -1,11 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
 <!-- 
 このレイアウトファイルは音声チャットアプリケーションのメイン画面を定義します。
 主な構成要素：
 1. チャットメッセージを表示するRecyclerView
 2. メッセージ表示用のテンプレート
-3. 音声認識の開始/停止とキャンセルボタンを含むコントロール部
+3. 設定ボタン
+このレイアウトはMainActivityから参照されます。
 -->
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"

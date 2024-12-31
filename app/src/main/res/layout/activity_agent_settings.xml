@@ -1,3 +1,11 @@
+<!-- 
+このレイアウトファイルはエージェント設定画面を定義します。
+主な構成要素：
+1. エージェントの名前、年齢、性別、性格、話し方の入力フィールド
+2. 応答の長さを設定するスライダー
+3. 設定を保存するボタン
+このレイアウトはAgentSettingsFragmentから参照されます。
+-->
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"

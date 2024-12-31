@@ -1,3 +1,10 @@
+/**
+ * ユーザー設定画面のフラグメント
+ * 
+ * 主な機能：
+ * - ユーザーの名前、年齢、性別、趣味の設定
+ * - 設定の保存と読み込み
+ */
 package com.example.voiceapp
 
 import android.content.Context
