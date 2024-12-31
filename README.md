@@ -87,7 +87,7 @@ flowchart TD
         D -->|テキスト読み上げ| E[TextToSpeech]
     end
     subgraph　プロンプト生成
-        E[エージェント設定]F[ユーザ設定] --> G[プロンプトレビュー]
+        E[エージェント設定] F[ユーザ設定] --> G[プロンプトレビュー]
         G --> C
     end
 ```
