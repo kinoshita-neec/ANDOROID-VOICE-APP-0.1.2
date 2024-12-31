@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!-- 
 このレイアウトファイルはエージェント設定画面を定義します。
 主な構成要素：
@@ -6,7 +7,6 @@
 3. 設定を保存するボタン
 このレイアウトはAgentSettingsFragmentから参照されます。
 -->
-<?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">

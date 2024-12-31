@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!-- 
 このレイアウトファイルはユーザー設定画面を定義します。
 主な構成要素：
@@ -5,7 +6,6 @@
 2. 設定を保存するボタン
 このレイアウトはUserSettingsFragmentから参照されます。
 -->
-<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
