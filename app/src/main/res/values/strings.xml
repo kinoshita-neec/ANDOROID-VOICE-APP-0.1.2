@@ -44,4 +44,6 @@
     <string name="button_check_sensors">センサー問い合わせ</string>
     <string name="sensor_info_title">センサー情報</string>
     <string name="no_sensor">センサーが利用できません</string>
+    <string name="conversation_log">会話ログ</string>
+    <string name="no_conversations">会話履歴がありません</string>
 </resources>

@@ -16,24 +16,24 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.constraintlayout.widget.ConstraintLayout
 
-class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
+class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ViewHolder>() {
     private val messages = mutableListOf<ChatMessage>()
 
-    class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val messageTextView: TextView = itemView.findViewById<TextView>(R.id.messageTextView)
             ?: throw IllegalStateException("TextView with id 'messageTextView' not found")
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.chat_message_item, parent, false)
-        return ChatViewHolder(view)
+        return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ChatViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val message = messages[position]
         holder.messageTextView.apply {
-            text = message.text
+            text = message.message
             
             val params = layoutParams as ConstraintLayout.LayoutParams
             if (message.isUser) {
@@ -57,6 +57,12 @@ class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
     fun addMessage(message: ChatMessage) {
         messages.add(message)
         notifyItemInserted(messages.size - 1)
+    }
+
+    fun setMessages(newMessages: List<ChatMessage>) {
+        messages.clear()
+        messages.addAll(newMessages)
+        notifyDataSetChanged()
     }
 
     fun clear() {

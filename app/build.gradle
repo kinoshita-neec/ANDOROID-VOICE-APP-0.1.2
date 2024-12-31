@@ -39,7 +39,12 @@ android {
         }
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'  // 11から17に変更
+        languageVersion = '1.9'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17  // 11から17に変更
+        targetCompatibility JavaVersion.VERSION_17  // 11から17に変更
     }
 }
 
@@ -88,4 +93,9 @@ dependencies {
     
     // JSONパース用の依存関係を追加
     implementation 'org.json:json:20230618'
+
+    // Room関連の依存関係を削除
+
+    // Gsonの依存関係を追加
+    implementation 'com.google.code.gson:gson:2.10.1'
 }

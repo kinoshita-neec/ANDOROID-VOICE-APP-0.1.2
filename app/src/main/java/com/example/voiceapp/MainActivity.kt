@@ -16,8 +16,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.voiceapp.databinding.ActivityMainBinding
+import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,11 +42,14 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     private lateinit var aiManager: AIManager
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var textToSpeechManager: TextToSpeechManager
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var navigationView: NavigationView
     private var currentState = UIState()
     private var isReturningFromSettings = false
     private var isSpeechRecognitionInitialized = false
     private val mainHandler = Handler(Looper.getMainLooper())
     private var pendingRecognitionStart = false
+    private lateinit var chatLogger: ChatLogger
 
     /**
      * アクティビティの初期化
@@ -69,6 +74,11 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // ドロワーレイアウトとナビゲーションビューの設定
+        drawerLayout = binding.drawerLayout
+        navigationView = binding.navigationView
+        setupNavigation()
 
         // TextToSpeechManagerの初期化のみ行い、初期化完了時にwelcomeを開始
         textToSpeechManager = TextToSpeechManager(this)
@@ -95,6 +105,8 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
 
         // SpeechRecognitionManagerは初期化のみ行う
         initializeSpeechRecognition()
+
+        chatLogger = ChatLogger(this)
     }
 
     override fun onResume() {
@@ -226,6 +238,7 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         ))
         chatAdapter.addMessage(ChatMessage(text, true))
         binding.chatRecyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+        // chatLogger.saveMessage(ChatMessage(text, true)) // この行を削除
         getAIResponse(text)
     }
 
@@ -253,9 +266,13 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     private fun getAIResponse(text: String) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
+                chatLogger.saveMessage(ChatMessage(text, true))  // ユーザーのメッセージを保存
+                
                 val response = withContext(Dispatchers.IO) {
                     aiManager.getAIResponse(text)
                 }
+                
+                chatLogger.saveMessage(ChatMessage(response, false))  // AIの応答を保存
                 chatAdapter.addMessage(ChatMessage(response, false))
                 binding.chatRecyclerView.scrollToPosition(chatAdapter.itemCount - 1)
                 
@@ -296,5 +313,20 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     companion object {
         private const val PERMISSION_REQUEST_CODE = 1
         private const val SPEECH_START_DELAY = 1000L  // ウェルカムメッセージ読み上げ完了後の待機時間を1秒に変更
+    }
+
+    private fun setupNavigation() {
+        navigationView.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_conversation_log -> {
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.fragment_container, ConversationLogFragment())
+                        .addToBackStack(null)
+                        .commit()
+                    true
+                }
+                else -> false
+            }
+        }
     }
 }

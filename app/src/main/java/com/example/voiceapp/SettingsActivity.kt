@@ -16,31 +16,40 @@ class SettingsActivity : AppCompatActivity() {
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.viewPager.adapter = SettingsPagerAdapter(this)
-
-        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            tab.text = when (position) {
-                0 -> "ユーザー設定"
-                1 -> "エージェント設定"
-                2 -> "プロンプト"
-                else -> ""
-            }
-        }.attach()
+        setupViewPager()
+        setupTabs()
 
         binding.backButton.setOnClickListener {
             finish()
         }
     }
+
+    private fun setupViewPager() {
+        binding.viewPager.adapter = SettingsPagerAdapter(this)
+    }
+
+    private fun setupTabs() {
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = when (position) {
+                0 -> "ユーザー設定"
+                1 -> "エージェント設定"
+                2 -> "プロンプト"
+                3 -> "会話ログ"
+                else -> ""
+            }
+        }.attach()
+    }
 }
 
 private class SettingsPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
-    override fun getItemCount(): Int = 3  // タブを3つに変更
+    override fun getItemCount(): Int = 4  // タブを4つに変更
 
     override fun createFragment(position: Int): Fragment {
         return when (position) {
             0 -> UserSettingsFragment()
             1 -> AgentSettingsFragment()
             2 -> PromptPreviewFragment()
+            3 -> ConversationLogFragment()
             else -> throw IllegalArgumentException("Invalid position $position")
         }
     }
