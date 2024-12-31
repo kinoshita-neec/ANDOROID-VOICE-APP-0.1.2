@@ -19,8 +19,9 @@ import androidx.constraintlayout.widget.ConstraintLayout
 class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
     private val messages = mutableListOf<ChatMessage>()
 
-    class ChatViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val messageText: TextView = view.findViewById(R.id.messageText)
+    class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val messageTextView: TextView = itemView.findViewById<TextView>(R.id.messageTextView)
+            ?: throw IllegalStateException("TextView with id 'messageTextView' not found")
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
@@ -31,7 +32,7 @@ class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ChatViewHolder>() {
 
     override fun onBindViewHolder(holder: ChatViewHolder, position: Int) {
         val message = messages[position]
-        holder.messageText.apply {
+        holder.messageTextView.apply {
             text = message.text
             
             val params = layoutParams as ConstraintLayout.LayoutParams
