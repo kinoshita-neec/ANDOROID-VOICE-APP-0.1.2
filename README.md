@@ -11,6 +11,7 @@
 - AI対話: OpenAI APIを利用した自然な対話生成
 - テキスト読み上げ: AIの応答を自然な音声で読み上げ
 - システム音抑制: ビープ音を最小限に抑えた快適な対話体験
+- **新機能**: 会話履歴の保存と管理
 
 ## セットアップ
 
@@ -63,7 +64,8 @@ android-voice-app
 │   │   ├── UserSettingsFragment.kt # ユーザー設定
 │   │   ├── AgentSettingsFragment.kt # エージェント設定
 │   │   ├── PromptPreviewFragment.kt # プロンプトプレビュー
-│   │   └── AIManager.kt           # OpenAI API通信
+│   │   ├── AIManager.kt           # OpenAI API通信
+│   │   ├── ConversationHistoryManager.kt # 会話履歴管理
 │   ├── res
 │   │   ├── layout
 │   │   │   ├── activity_main.xml   # メインレイアウト
@@ -90,6 +92,10 @@ flowchart TD
         F[エージェント設定] --> G[ユーザ設定]
         G --> H[プロンプトレビュー]
         H --> C
+    end
+    subgraph 会話履歴管理
+        I[会話履歴保存] --> J[ConversationHistoryManager]
+        J --> H
     end
 ```
 
