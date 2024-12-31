@@ -2,20 +2,23 @@
 
 # Android Voice App
 
-このプロジェクトは、音声対話アプリケーションを作成するためのAndroidアプリです。ユーザーの音声を認識し、OpenAI APIを利用して生成AIと対話する機能を提供します。
+このプロジェクトは、音声対話アプリケーションを作成するためのAndroidアプリです。チャットスタイルのUIでユーザーの音声を認識し、OpenAI APIを利用して自然な対話を実現します。
 
 ## 機能
 
-- 音声認識: ユーザーの音声を認識し、画面に表示します。
-- テキスト読み上げ: AIからの応答を音声として読み上げます。
-- 環境センサー: 温度、湿度、照度、気圧を取得し、ユーザーに情報を提供します。
+- チャットUI: メッセージをチャット形式で表示し、対話の流れを視覚化
+- 音声認識: 日本語音声を自動認識してチャットメッセージとして表示
+- AI対話: OpenAI APIを利用した自然な対話生成
+- テキスト読み上げ: AIの応答を自然な音声で読み上げ
+- システム音抑制: ビープ音を最小限に抑えた快適な対話体験
 
 ## セットアップ
 
-1. プロジェクトをクローンします。
-2. Android Studioを使用してプロジェクトを開きます。
-3. 必要なSDKと依存関係をインストールします。
-4. アプリをビルドして実行します。
+1. プロジェクトをクローン
+2. Android Studioでプロジェクトを開く
+3. 必要なSDKと依存関係をインストール
+4. OpenAI APIキーを設定（下記参照）
+5. アプリをビルドして実行
 
 ## OpenAI APIキーの取得方法
 
@@ -41,74 +44,40 @@
 
 ## 使用方法
 
-1. 音声認識
-   - 「音声認識を開始」ボタンをタップして音声入力を開始します
-   - 音声を認識すると、画面上部のテキストエリアに表示されます
-   - 音声入力中は「音声認識を停止」ボタンをタップして終了できます
-
-2. AI対話
-   - 音声認識が完了すると「AI問い合わせ」ボタンが有効になります
-   - ボタンをタップするとAIに問い合わせを行い、応答を取得します
-   - AI応答は画面中央のテキストエリアに表示され、自動的に音声で読み上げられます
-
-3. 環境センサー
-   - 「センサー問い合わせ」ボタンをタップすると現在の環境情報を取得します
-   - 温度、湿度、照度、気圧の情報が画面下部に表示されます
-   - センサー情報は音声でも読み上げられます
-
-4. 操作の中断
-   - 処理中は「中断」ボタンが有効になり、タップすると現在の処理を中止できます
-   - AI応答の生成中や音声読み上げ中も中断可能です
-
-※ アプリの状態は画面上部のステータス表示で確認できます
+1. アプリを起動すると自動的に音声認識が開始されます
+2. 話しかけると認識された音声がチャットメッセージとして表示されます
+3. AIが応答を生成し、メッセージとして表示され自動で読み上げられます
+4. 会話は自動的に継続され、自然な対話が可能です
 
 ## プロジェクト構成
 
 ```
 android-voice-app
-├── app
-│   ├── src
-│   │   ├── main
-│   │   │   ├── java
-│   │   │   │   └── com.example.voiceapp
-│   │   │   │       ├── MainActivity.kt          # メインアクティビティ
-│   │   │   │       ├── SensorManager.kt         # 環境センサーの管理
-│   │   │   │       ├── SpeechRecognizer.kt      # 音声認識の実装
-│   │   │   │       ├── TextToSpeech.kt          # テキスト読み上げの実装
-│   │   │   │       └── AIManager.kt             # AIとの対話管理
-│   │   │   ├── res
-│   │   │   │   ├── layout
-│   │   │   │   │   └── activity_main.xml        # メインアクティビティのレイアウト
-│   │   │   │   └── values
-│   │   │   │       ├── strings.xml              # 文字列リソース
-│   │   │   │       ├── colors.xml               # カラーリソース
-│   │   │   │       └── styles.xml               # アプリケーションのスタイル定義
-│   │   │   └── AndroidManifest.xml              # アプリの設定、権限、アクティビティ定義
-│   ├── build.gradle                             # アプリレベルの依存関係
-├── gradle
-│   └── wrapper
-├── build.gradle                                 # プロジェクトレベルの設定
-├── settings.gradle                              # プロジェクト設定
-└── local.properties                            # APIキー等のローカル設定（非Git管理）
+├── app/src/main
+│   ├── java/com.example.voiceapp
+│   │   ├── MainActivity.kt          # メインアクティビティ
+│   │   ├── ChatAdapter.kt          # チャットUI管理
+│   │   ├── ChatMessage.kt          # メッセージモデル
+│   │   ├── SpeechRecognitionManager.kt # 音声認識
+│   │   ├── TextToSpeechManager.kt  # 音声読み上げ
+│   │   └── AIManager.kt           # OpenAI API通信
+│   ├── res
+│   │   ├── layout
+│   │   │   ├── activity_main.xml   # メインレイアウト
+│   │   │   └── chat_message_item.xml # メッセージ表示
+│   │   └── drawable
+│   │       └── chat_bubble.xml     # チャットバブル
+│   └── AndroidManifest.xml
+└── local.properties              # APIキー設定
 ```
 
-## アプリ構成図
+## 技術スタック
 
-```mermaid
-flowchart TD
-    subgraph 音声処理
-        A[ユーザーの音声入力] -->|音声認識| B[SpeechRecognizer]
-        B -->|テキスト化| C[AIManager]
-        C -->|生成AIとの対話| D[AI応答]
-        D -->|テキスト読み上げ| E[TextToSpeech]
-    end
-    subgraph 環境センサー
-        C -->|環境センサーのデータ取得| F[SensorManager]
-        F -->|センサーデータ| G[ユーザー通知]
-    end
-```
-
-
+- Kotlin & Android Jetpack
+- OpenAI API (GPT-4)
+- Android音声認識・読み上げAPI
+- RecyclerViewによるチャット表示
+- OkHttpによるAPI通信
 
 ## 将来ビジョン
 
