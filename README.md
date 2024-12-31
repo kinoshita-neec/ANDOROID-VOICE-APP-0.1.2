@@ -84,12 +84,11 @@ flowchart TD
         A[ユーザーの音声入力] -->|音声認識| B[SpeechRecognizer]
         B -->|テキスト化| C[AIManager]
         C -->|生成AIとの通信| D[AIからの応答]
-        D -->|テキスト読み上げ| E[TextToSpeech]
-    end
-    subgraph プロンプト生成
-        E[エージェント設定] --> F[ユーザ設定]
-        F --> G[プロンプトレビュー]
-        G --> C
+        D -->|テキスト読み上げ| E[TextToSpeech];
+      　|プロンプト生成|
+        F[エージェント設定] --> G[ユーザ設定]
+        G --> H[プロンプトレビュー]
+        H --> C
     end
 ```
 
