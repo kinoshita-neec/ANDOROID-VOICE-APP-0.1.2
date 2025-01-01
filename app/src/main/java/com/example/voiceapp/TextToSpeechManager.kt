@@ -9,6 +9,15 @@ import android.os.Bundle
 import android.util.Log
 import java.util.Locale
 
+/**
+ * テキスト読み上げを管理するクラス
+ * - 初期化と終了処理
+ * - テキストの読み上げと中断
+ * - 読み上げ状態の監視
+ * を担当します。
+ * 
+ * 並行処理に対応し、読み上げの開始・終了を正確に追跡します。
+ */
 class TextToSpeechManager(private val context: Context) {
     private var tts: TextToSpeech? = null
     private var isInitialized = false

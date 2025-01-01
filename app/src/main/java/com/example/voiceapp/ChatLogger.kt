@@ -5,6 +5,13 @@ import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
+/**
+ * チャットメッセージの永続化を担当するクラス
+ * - SharedPreferencesを使用したメッセージの保存
+ * - JSONシリアライズ/デシリアライズ
+ * - メッセージの追加、取得、削除操作
+ * を提供します。
+ */
 class ChatLogger(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("chat_history", Context.MODE_PRIVATE)
     private val gson = Gson()

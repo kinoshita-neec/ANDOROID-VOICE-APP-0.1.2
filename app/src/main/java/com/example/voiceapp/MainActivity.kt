@@ -127,10 +127,8 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         Log.d("MainActivity", "Starting welcome sequence with message: $welcomeMessage")
         pendingRecognitionStart = false
         
-        // 読み上げ完了後にSpeechRecognitionManagerを初期化し、音声認識を開始
         textToSpeechManager.speak(welcomeMessage) {
-            Log.d("MainActivity", "Welcome TTS completed, waiting to ensure completion")
-            ensureSpeechRecognitionStart()
+            manageSpeechRecognitionFlow()
         }
     }
 
@@ -140,18 +138,29 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
             return
         }
         pendingRecognitionStart = true
+        manageSpeechRecognitionFlow()
+    }
 
+    /**
+     * 音声認識の開始フローを管理する共通ヘルパー関数
+     * 
+     * この関数は以下の責務を持ちます：
+     * 1. 音声読み上げの完了確認
+     * 2. 適切なタイミングでの音声認識開始
+     * 3. 状態管理とエラーハンドリング
+     */
+    private fun manageSpeechRecognitionFlow() {
         fun checkAndStart() {
             if (!textToSpeechManager.isSpeaking()) {
-                Log.d("MainActivity", "Speech completed, starting recognition")
+                Log.d("MainActivity", "Speech completed, preparing to start recognition")
                 mainHandler.postDelayed({
                     if (!isReturningFromSettings && !textToSpeechManager.isSpeaking()) {
                         pendingRecognitionStart = false
                         checkPermissionAndStartListening()
                     }
-                }, 1000)
+                }, 1000) // 安全のため1秒待機
             } else {
-                Log.d("MainActivity", "Still speaking, waiting...")
+                Log.d("MainActivity", "Still speaking, waiting for completion")
                 mainHandler.postDelayed({ checkAndStart() }, 100)
             }
         }

@@ -10,6 +10,13 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.voiceapp.databinding.FragmentConversationLogBinding
 
+/**
+ * 会話ログを表示・管理するフラグメント
+ * - 会話履歴の表示とソート機能
+ * - ログの選択と削除
+ * - 保持する会話ログ数の設定
+ * を提供します。
+ */
 class ConversationLogFragment : Fragment() {
     private var _binding: FragmentConversationLogBinding? = null
     private val binding get() = _binding!!

@@ -8,6 +8,11 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.example.voiceapp.databinding.ActivitySettingsBinding
 import com.google.android.material.tabs.TabLayoutMediator
 
+/**
+ * アプリケーションの設定画面を管理するアクティビティ
+ * - ViewPager2を使用したタブ式の設定画面
+ * - ユーザー設定、エージェント設定、プロンプト、会話ログの4つのタブを提供
+ */
 class SettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySettingsBinding
 

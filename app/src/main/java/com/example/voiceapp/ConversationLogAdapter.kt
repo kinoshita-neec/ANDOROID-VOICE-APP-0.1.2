@@ -8,6 +8,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * 会話ログのリサイクラービューを管理するアダプタ
+ * - メッセージの表示とフォーマット
+ * - 項目の選択状態の管理
+ * - 一括選択・削除機能
+ * を実装しています。
+ */
 class ConversationLogAdapter : RecyclerView.Adapter<ConversationLogAdapter.ViewHolder>() {
     private var messages: MutableList<ChatMessage> = mutableListOf()
     private val selectedItems = mutableSetOf<Int>()
