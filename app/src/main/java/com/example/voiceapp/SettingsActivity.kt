@@ -10,8 +10,15 @@ import com.google.android.material.tabs.TabLayoutMediator
 
 /**
  * アプリケーションの設定画面を管理するアクティビティ
- * - ViewPager2を使用したタブ式の設定画面
- * - ユーザー設定、エージェント設定、プロンプト、会話ログの4つのタブを提供
+ * 
+ * このクラスは以下の機能を提供します：
+ * 1. ViewPager2を使用したタブ式の設定画面
+ * 2. ユーザー設定の管理（プロフィール情報）
+ * 3. エージェント設定の管理（性格、話し方）
+ * 4. プロンプトプレビューの表示
+ * 5. 会話ログの表示と管理
+ * 
+ * @property binding ViewBindingによるレイアウトの参照
  */
 class SettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySettingsBinding
@@ -29,10 +36,18 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * ViewPagerの設定
+     * 各設定画面をフラグメントとして管理します
+     */
     private fun setupViewPager() {
         binding.viewPager.adapter = SettingsPagerAdapter(this)
     }
 
+    /**
+     * タブの設定
+     * 各設定画面のタイトルとナビゲーションを管理します
+     */
     private fun setupTabs() {
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             tab.text = when (position) {

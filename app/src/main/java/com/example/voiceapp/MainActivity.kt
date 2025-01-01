@@ -34,6 +34,12 @@ import kotlinx.coroutines.withContext
  * 3. AIマネージャーを使用した対話処理
  * 4. テキスト読み上げ機能の管理
  * 5. チャットスタイルのメッセージ表示
+ * 
+ * @property binding ViewBindingによるレイアウトの参照
+ * @property speechRecognitionManager 音声認識の管理
+ * @property aiManager AI対話の管理
+ * @property textToSpeechManager 音声読み上げの管理
+ * @property chatLogger 会話履歴の管理
  */
 class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecognitionCallback {
     // プロパティの宣言を追加
@@ -118,6 +124,13 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
         }
     }
 
+    /**
+     * 音声認識フローの管理
+     * 
+     * @param welcomeMessage 初期メッセージ
+     * @throws SecurityException 音声認識の権限がない場合
+     * @throws IllegalStateException TextToSpeechの初期化が完了していない場合
+     */
     private fun startWelcomeSequence() {
         val welcomeMessage = getSharedPreferences("agent_settings", Context.MODE_PRIVATE)
             ?.getString("agent_name", "あすか")?.let { name ->
@@ -152,16 +165,16 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     private fun manageSpeechRecognitionFlow() {
         fun checkAndStart() {
             if (!textToSpeechManager.isSpeaking()) {
-                Log.d("MainActivity", "Speech completed, preparing to start recognition")
-                mainHandler.postDelayed({
-                    if (!isReturningFromSettings && !textToSpeechManager.isSpeaking()) {
-                        pendingRecognitionStart = false
-                        checkPermissionAndStartListening()
-                    }
-                }, 1000) // 安全のため1秒待機
+                Log.d("MainActivity", "Speech completed, starting recognition immediately")
+                // 待機時間なしで即時実行
+                if (!isReturningFromSettings && !textToSpeechManager.isSpeaking()) {
+                    pendingRecognitionStart = false
+                    checkPermissionAndStartListening()
+                }
             } else {
                 Log.d("MainActivity", "Still speaking, waiting for completion")
-                mainHandler.postDelayed({ checkAndStart() }, 100)
+                // 状態確認のみ短い間隔で実行
+                mainHandler.postDelayed({ checkAndStart() }, 10)
             }
         }
 
@@ -174,10 +187,10 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
                 Log.d("MainActivity", "Speech completion confirmed")
                 Handler(Looper.getMainLooper()).postDelayed({
                     onComplete()
-                }, 500)
+                }, 1) // 読み上げ完了確認後の待機時間
             } else {
                 Log.d("MainActivity", "Still speaking, waiting...")
-                Handler(Looper.getMainLooper()).postDelayed({ checkSpeechStatus() }, 100)
+                Handler(Looper.getMainLooper()).postDelayed({ checkSpeechStatus() }, 5) // 読み上げ状態確認の間隔
             }
         }
         checkSpeechStatus()
@@ -209,10 +222,9 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
             updateUIState(currentState.copy(isListening = true))
             speechRecognitionManager.startListening()
         } else {
-            Log.d("MainActivity", "Still speaking, delaying recognition")
-            Handler(Looper.getMainLooper()).postDelayed({
-                checkPermissionAndStartListening()
-            }, 500)
+            Log.d("MainActivity", "Still speaking, trying immediately")
+            // 待機なしで再試行
+            checkPermissionAndStartListening()
         }
     }
 
@@ -321,7 +333,8 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 1
-        private const val SPEECH_START_DELAY = 1000L  // ウェルカムメッセージ読み上げ完了後の待機時間を1秒に変更
+        // 基本待機時間を0に設定（即時開始）
+        private const val SPEECH_START_DELAY = 0L
     }
 
     private fun setupNavigation() {

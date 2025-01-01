@@ -30,27 +30,39 @@ class ConversationLogFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentConversationLogBinding.inflate(inflater, container, false)
+        // ChatLoggerの初期化を追加
+        chatLogger = ChatLogger(requireContext())
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        chatLogger = ChatLogger(requireContext())
-        adapter = ConversationLogAdapter()
-        adapter.setMessages(chatLogger.getMessages())  // メッセージを設定
-        binding.conversationLogRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        binding.conversationLogRecyclerView.adapter = adapter
+        
+        // 現在の設定値を読み込んで表示
+        val appPrefs = requireContext().getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+        val currentLogCount = appPrefs.getInt("conversation_log_count", 3)
+        binding.logCountInput.setText(currentLogCount.toString())
 
-        binding.saveButton.setOnClickListener {
-            val count = binding.conversationLogCount.text.toString().toIntOrNull()
-            if (count != null && count > 0) {
-                saveConversationLogCount(count)
-                Toast.makeText(requireContext(), "会話ログの数を保存しました", Toast.LENGTH_SHORT).show()
+        // RecyclerViewの設定
+        adapter = ConversationLogAdapter()
+        chatLogger.getMessages().let { messages ->
+            adapter.setMessages(messages)
+        }
+        binding.conversationRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.conversationRecyclerView.adapter = adapter
+
+        // 更新ボタンの処理を追加
+        binding.updateButton.setOnClickListener {
+            val newCount = binding.logCountInput.text.toString().toIntOrNull()
+            if (newCount != null && newCount > 0) {
+                appPrefs.edit().putInt("conversation_log_count", newCount).apply()
+                Toast.makeText(context, "会話ログ参照数を更新しました", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(requireContext(), "有効な数を入力してください", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "有効な数値を入力してください", Toast.LENGTH_SHORT).show()
             }
         }
 
+        // ボタンとヘッダーの設定
         setupDeleteButton()
         setupSortHeaders()
         loadMessages()
@@ -60,14 +72,14 @@ class ConversationLogFragment : Fragment() {
         binding.deleteButton.setOnClickListener {
             val selectedMessages = adapter.getSelectedMessages()
             chatLogger.deleteMessages(selectedMessages)
-            adapter.updateMessages(chatLogger.getMessages())
+            loadMessages()
         }
     }
 
     private fun setupSortHeaders() {
         binding.apply {
-            headerCheckBox.setOnCheckedChangeListener { _, isChecked ->
-                (conversationLogRecyclerView.adapter as ConversationLogAdapter).selectAll(isChecked)
+            headerCheckBox.setOnCheckedChangeListener { buttonView, isChecked ->
+                adapter.selectAll(isChecked)
             }
             headerTimestamp.setOnClickListener {
                 currentSortOrder = when (currentSortOrder) {
@@ -127,7 +139,9 @@ class ConversationLogFragment : Fragment() {
                 SortOrder.MESSAGE_DESC -> messages.sortedByDescending { it.message }
             }
         }
-        (binding.conversationLogRecyclerView.adapter as ConversationLogAdapter).setMessages(messages)
+        binding.conversationRecyclerView.adapter?.let { adapter ->
+            (adapter as ConversationLogAdapter).setMessages(messages)
+        }
     }
 
     private fun saveConversationLogCount(count: Int) {

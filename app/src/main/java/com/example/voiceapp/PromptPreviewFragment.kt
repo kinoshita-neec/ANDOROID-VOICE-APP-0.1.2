@@ -8,6 +8,18 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.voiceapp.databinding.FragmentPromptPreviewBinding
 
+/**
+ * プロンプトプレビューを表示するフラグメント
+ * 
+ * このクラスは以下の機能を提供します：
+ * 1. システムプロンプトの生成と表示
+ * 2. エージェントとユーザーの設定の読み取り
+ * 3. 会話ログの管理
+ * 4. プロンプトのリアルタイム更新
+ * 
+ * @property binding ViewBindingによるレイアウトの参照
+ * @property chatLogger 会話履歴の管理
+ */
 class PromptPreviewFragment : Fragment() {
     private var _binding: FragmentPromptPreviewBinding? = null
     private val binding get() = _binding!!
@@ -39,6 +51,19 @@ class PromptPreviewFragment : Fragment() {
     }
 
     companion object {
+        /**
+         * システムプロンプトを生成
+         * 
+         * 以下の情報を含むプロンプトを生成します：
+         * 1. エージェントの基本情報（名前、性別、年齢）
+         * 2. 性格と特徴（基本性格、話し方）
+         * 3. 応答スタイル（長さ、一貫性、共感性）
+         * 4. ユーザー情報
+         * 5. 最近の会話履歴
+         * 
+         * @param context アプリケーションコンテキスト
+         * @return 生成されたシステムプロンプト
+         */
         fun getSystemPrompt(context: Context): String {
             val agentPrefs = context.getSharedPreferences("agent_settings", Context.MODE_PRIVATE)
             val userPrefs = context.getSharedPreferences("user_settings", Context.MODE_PRIVATE)
@@ -111,6 +136,12 @@ class PromptPreviewFragment : Fragment() {
             """.trimIndent()
         }
 
+        /**
+         * 応答の長さに関するプロンプトを生成
+         * 
+         * @param value 応答の長さ（1-5のFloat値）
+         * @return 応答長設定のプロンプト文字列
+         */
         private fun getResponseLengthPrompt(value: Float): String {
             return when (value.toInt()) {
                 1 -> "できるだけ簡潔に、5文字以下で応答してください。"
