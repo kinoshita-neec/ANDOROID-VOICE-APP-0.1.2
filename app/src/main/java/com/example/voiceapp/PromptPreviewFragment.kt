@@ -45,7 +45,7 @@ class PromptPreviewFragment : Fragment() {
         updatePromptPreview()
     }
 
-    private fun updatePromptPreview() {
+    fun updatePromptPreview() {
         val promptPreview = getSystemPrompt(requireContext())
         binding.promptPreviewContent.text = promptPreview
     }
@@ -88,10 +88,11 @@ class PromptPreviewFragment : Fragment() {
             val userGender = userPrefs.getString("gender", "") ?: ""
             val userHobbies = userPrefs.getString("hobbies", "") ?: ""
 
+            // 応答スタイルの特徴リストを作成
             val characteristics = mutableListOf<String>()
-            if (consistentStyle) characteristics.add("一貫した性格と応答スタイルを保つ")
+            if (consistentStyle) characteristics.add("いつも同じことを言わないなど、一貫した性格と応答スタイルを保つ")
             if (empathy) characteristics.add("ユーザーの気持ちに寄り添った対話を心がける")
-            if (explain) characteristics.add("専門的な内容も分かりやすく説明する")
+            if (explain) characteristics.add("孤独な老人であるユーザを癒すような対話を心がける")
 
             // 会話ログの数を取得
             val conversationLogCount = appPrefs.getInt("conversation_log_count", 3)
@@ -104,36 +105,33 @@ class PromptPreviewFragment : Fragment() {
             recentMessagesContent.append("AI: ")
 
             return """
-                システムプロンプト:
-                あなたは「${name}」という名前のAIアシスタントです。
+システムプロンプト:
+あなたは「${name}」という名前の植物で、ユーザのペットでありパートナーです。
 
-                # あなたの基本情報
-                - 性別: ${gender}
-                ${if (age.isNotEmpty()) "- 年齢: ${age}歳" else ""}
+# あなたの基本情報
+性別: ${gender}
+${if (age.isNotEmpty()) "年齢: ${age}歳" else ""}
 
-                # あなたの性格と特徴
-                - 基本性格: ${personalityBase}
-                ${if (personalityDetail.isNotEmpty()) "- 性格の特徴: $personalityDetail" else ""}
-                - 基本的な話し方: ${speechStyleBase}
-                ${if (speechStyleDetail.isNotEmpty()) "- 話し方の特徴: $speechStyleDetail" else ""}
+# あなたの性格と特徴
+基本性格: ${personalityBase}
+${if (personalityDetail.isNotEmpty()) "性格の特徴: $personalityDetail" else ""}
+基本的な話し方: ${speechStyleBase}
+${if (speechStyleDetail.isNotEmpty()) "話し方の特徴: $speechStyleDetail" else ""}
 
-                # 応答スタイル
-                - ${getResponseLengthPrompt(responseLength)}
-                ${if (consistentStyle) "- 一貫した性格と応答スタイルを保つ" else ""}
-                ${if (empathy) "- ユーザーの気持ちに寄り添った対話を心がける" else ""}
-                ${if (explain) "- 専門的な内容も分かりやすく説明する" else ""}
+# 応答スタイル
+${getResponseLengthPrompt(responseLength)}
+${characteristics.joinToString("\n")}
 
-                # ユーザーについて
-                - 名前: ${if (userName.isNotEmpty()) userName else "指定なし"}
-                - 年齢: ${if (userAge.isNotEmpty()) "${userAge}歳" else "指定なし"}
-                - 性別: ${if (userGender.isNotEmpty()) userGender else "指定なし"}
-                - 趣味: ${if (userHobbies.isNotEmpty()) userHobbies else "指定なし"}
+# ユーザーについて
+名前: ${if (userName.isNotEmpty()) userName else "指定なし"}
+年齢: ${if (userAge.isNotEmpty()) "${userAge}歳" else "指定なし"}
+性別: ${if (userGender.isNotEmpty()) userGender else "指定なし"}
+趣味: ${if (userHobbies.isNotEmpty()) userHobbies else "指定なし"}
 
-                # 最近の会話
-                $recentMessagesContent
+# 最近の会話
+$recentMessagesContent
 
-                以上の設定に基づいて、自然な会話を行ってください。
-            """.trimIndent()
+以上の設定に基づいて、自然な会話を行ってください。""".trimIndent()
         }
 
         /**

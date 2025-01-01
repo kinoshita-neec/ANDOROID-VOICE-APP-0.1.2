@@ -103,30 +103,27 @@ class AgentSettingsFragment : Fragment() {
     }
 
     private fun saveSettings() {
-        val name = binding.agentNameInput.text.toString()
-        val age = binding.agentAgeInput.text.toString()
-        val gender = binding.agentGenderInput.text.toString()
-        val personalityBase = binding.personalityBaseInput.text.toString()
-        val personalityDetail = binding.personalityDetailInput.text.toString()
-        val speechStyleBase = binding.speechStyleBaseInput.text.toString()
-        val speechStyleDetail = binding.speechStyleDetailInput.text.toString()
-        val responseLength = binding.responseLength.value
-
-        context?.getSharedPreferences("agent_settings", Context.MODE_PRIVATE)?.edit()?.apply {
-            putString("agent_name", name)
-            putString("agent_age", age)
-            putString("agent_gender", gender)
-            putString("personality_base", personalityBase)
-            putString("personality_detail", personalityDetail)
-            putString("speech_style_base", speechStyleBase)
-            putString("speech_style_detail", speechStyleDetail)
-            putFloat("response_length", responseLength)
-            putBoolean("consistent_style", binding.consistentStyleCheck.isChecked)
-            putBoolean("empathy", binding.empathyCheck.isChecked)
-            putBoolean("explain", binding.explainCheck.isChecked)
-            apply()
+        with(binding) {
+            val sharedPreferences = requireContext().getSharedPreferences("agent_settings", Context.MODE_PRIVATE)
+            sharedPreferences.edit().apply {
+                putString("agent_name", agentNameInput.text.toString())
+                putString("agent_age", agentAgeInput.text.toString())
+                putString("agent_gender", agentGenderInput.text.toString())
+                putString("personality_base", personalityBaseInput.text.toString())
+                putString("personality_detail", personalityDetailInput.text.toString())
+                putString("speech_style_base", speechStyleBaseInput.text.toString())
+                putString("speech_style_detail", speechStyleDetailInput.text.toString())
+                putFloat("response_length", responseLength.value)
+                putBoolean("consistent_style", consistentStyleCheck.isChecked)
+                putBoolean("empathy", empathyCheck.isChecked)
+                putBoolean("explain", explainCheck.isChecked)
+                apply()  // 設定を保存
+            }
         }
-        
+
+        // 設定保存後、必ずプロンプトプレビューを更新
+        (requireActivity() as? SettingsActivity)?.refreshPromptPreview()
+        // 更新完了メッセージを表示
         Toast.makeText(context, "設定を保存しました", Toast.LENGTH_SHORT).show()
     }
 

@@ -59,6 +59,22 @@ class SettingsActivity : AppCompatActivity() {
             }
         }.attach()
     }
+
+    /**
+     * プロンプトプレビューを更新
+     * 設定変更時に他のフラグメントから呼び出される
+     */
+    fun refreshPromptPreview() {
+        // ViewPager2から直接プロンプトプレビューのフラグメントを取得
+        val fragments = binding.viewPager.adapter?.let { adapter ->
+            (0 until adapter.itemCount).mapNotNull { position ->
+                supportFragmentManager.findFragmentByTag("f${position}")
+            }
+        } ?: emptyList()
+        
+        fragments.filterIsInstance<PromptPreviewFragment>()
+            .firstOrNull()?.updatePromptPreview()
+    }
 }
 
 private class SettingsPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {

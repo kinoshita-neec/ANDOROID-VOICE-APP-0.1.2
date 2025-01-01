@@ -164,8 +164,13 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
             Log.d("MainActivity", "Starting welcome sequence with AI message: $welcomeMessage")
             // UI更新後に読み上げを開始
             updatePromptPreview()
+
+            // 読み上げ開始前にSpeechRecognitionManagerの準備を開始
+            prepareForNextRecognition()
+
             textToSpeechManager.speak(welcomeMessage) {
-                manageSpeechRecognitionFlow()
+                // 読み上げ完了時に即座に音声認識を開始
+                startPreparedRecognition()
             }
         }
     }
@@ -327,9 +332,12 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
                 pendingRecognitionStart = false
 
                 textToSpeechManager.speak(response) {
-                    ensureSpeechRecognitionStart()
+                    startPreparedRecognition()
                 }
-                updatePromptPreview()  // プロンプトプレビューを更新
+                // 読み上げ開始前に次の認識の準備を開始
+                prepareForNextRecognition()
+                
+                updatePromptPreview()
             } catch (e: Exception) {
                 updateUIState(currentState.copy(
                     isProcessing = false,
@@ -380,5 +388,30 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     private fun updatePromptPreview() {
         val promptPreview = PromptPreviewFragment.getSystemPrompt(this)
         binding.promptPreviewContent.text = promptPreview
+    }
+
+    /**
+     * 次の音声認識のための準備を行う
+     * TextToSpeech実行中に裏で準備を完了させる
+     */
+    private fun prepareForNextRecognition() {
+        if (!isSpeechRecognitionInitialized) {
+            initializeSpeechRecognition()
+        }
+        // 音声認識の事前準備を開始
+        speechRecognitionManager.prepareForNextRecognition()
+    }
+
+    /**
+     * 準備済みの音声認識を開始
+     */
+    private fun startPreparedRecognition() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            Log.d("MainActivity", "Starting prepared recognition immediately")
+            updateUIState(currentState.copy(isListening = true))
+            speechRecognitionManager.startPreparedListening()
+        } else {
+            checkPermissionAndStartListening()
+        }
     }
 }

@@ -82,6 +82,7 @@ class SpeechRecognitionManager(
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isStoppingInProgress = false
     private val recognitionLock = Object()
+    private var isPrepared = false
 
     interface SpeechRecognitionCallback {
         fun onRecognitionStarted()
@@ -399,4 +400,26 @@ class SpeechRecognitionManager(
     }
 
     fun isListening() = isListening
+
+    fun prepareForNextRecognition() {
+        if (speechRecognizer == null) {
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
+                setRecognitionListener(createRecognitionListener())
+            }
+        }
+        isPrepared = true
+        Log.d("SpeechRecognitionManager", "Recognition prepared and ready")
+    }
+
+    fun startPreparedListening() {
+        if (!isPrepared) {
+            prepareForNextRecognition()
+        }
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
+        }
+        speechRecognizer?.startListening(intent)
+        Log.d("SpeechRecognitionManager", "Starting prepared recognition")
+    }
 }

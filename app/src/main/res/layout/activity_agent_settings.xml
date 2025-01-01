@@ -157,7 +157,7 @@
             android:id="@+id/consistentStyleCheck"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="一貫した性格と応答スタイルを保つ"
+            android:text="いつも同じことを言わないなど、一貫した性格と応答スタイルを保つ"
             android:checked="true"/>
 
         <CheckBox
@@ -171,7 +171,7 @@
             android:id="@+id/explainCheck"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="専門的な内容も分かりやすく説明する"
+            android:text="孤独な老人であるユーザを癒すような対話を心がける"
             android:checked="true"
             android:layout_marginBottom="16dp"/>
 
