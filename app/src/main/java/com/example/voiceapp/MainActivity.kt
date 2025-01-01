@@ -125,23 +125,48 @@ class MainActivity : AppCompatActivity(), SpeechRecognitionManager.SpeechRecogni
     }
 
     /**
+     * アプリ起動時の挨拶メッセージを生成
+     * システムプロンプトを使用してAIからウェルカムメッセージを取得
+     */
+    private suspend fun getWelcomeMessage(): String {
+        return try {
+            // AIManagerを使用して挨拶を要求（ログには保存しない）
+            val response = withContext(Dispatchers.IO) {
+                aiManager.getAIResponse("あいさつをして")
+            }
+            // 応答のみを会話履歴に保存し、チャット画面に表示
+            chatLogger.saveMessage(ChatMessage(response, false))
+            chatAdapter.addMessage(ChatMessage(response, false))
+            binding.chatRecyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+            
+            response
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Welcome message generation failed", e)
+            getString(R.string.welcome_message).also { defaultMessage ->
+                // エラー時もチャット画面に表示
+                chatAdapter.addMessage(ChatMessage(defaultMessage, false))
+                binding.chatRecyclerView.scrollToPosition(chatAdapter.itemCount - 1)
+            }
+        }
+    }
+
+    /**
      * 音声認識フローの管理
      * 
-     * @param welcomeMessage 初期メッセージ
-     * @throws SecurityException 音声認識の権限がない場合
-     * @throws IllegalStateException TextToSpeechの初期化が完了していない場合
+     * アプリ起動時やメニューからの復帰時に実行され、
+     * AIによる挨拶メッセージの生成と音声認識の開始を行います。
      */
     private fun startWelcomeSequence() {
-        val welcomeMessage = getSharedPreferences("agent_settings", Context.MODE_PRIVATE)
-            ?.getString("agent_name", "あすか")?.let { name ->
-                "${name}が戻ってきました。ご用件をどうぞ。"
-            } ?: getString(R.string.welcome_message)
-
-        Log.d("MainActivity", "Starting welcome sequence with message: $welcomeMessage")
-        pendingRecognitionStart = false
-        
-        textToSpeechManager.speak(welcomeMessage) {
-            manageSpeechRecognitionFlow()
+        CoroutineScope(Dispatchers.Main).launch {
+            pendingRecognitionStart = false
+            val welcomeMessage = getWelcomeMessage()
+            
+            Log.d("MainActivity", "Starting welcome sequence with AI message: $welcomeMessage")
+            // UI更新後に読み上げを開始
+            updatePromptPreview()
+            textToSpeechManager.speak(welcomeMessage) {
+                manageSpeechRecognitionFlow()
+            }
         }
     }
 

@@ -6,7 +6,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
 /**
- * チャットメッセージの永続化を担当するクラス
+ * チャットメッセージのアーカイブ化を担当するクラス
  * - SharedPreferencesを使用したメッセージの保存
  * - JSONシリアライズ/デシリアライズ
  * - メッセージの追加、取得、削除操作

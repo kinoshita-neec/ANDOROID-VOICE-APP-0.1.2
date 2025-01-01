@@ -17,7 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.constraintlayout.widget.ConstraintLayout
 
 class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ViewHolder>() {
-    private val messages = mutableListOf<ChatMessage>()
+    private var messages = listOf<ChatMessage>()
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val messageTextView: TextView = itemView.findViewById<TextView>(R.id.messageTextView)
@@ -55,18 +55,18 @@ class ChatAdapter : RecyclerView.Adapter<ChatAdapter.ViewHolder>() {
     override fun getItemCount() = messages.size
 
     fun addMessage(message: ChatMessage) {
-        messages.add(message)
+        messages = messages + message
         notifyItemInserted(messages.size - 1)
     }
 
     fun setMessages(newMessages: List<ChatMessage>) {
-        messages.clear()
-        messages.addAll(newMessages)
+        // 表示可能なメッセージのみをフィルタリング
+        messages = newMessages.filter { it.isVisible }
         notifyDataSetChanged()
     }
 
     fun clear() {
-        messages.clear()
+        messages = emptyList()
         notifyDataSetChanged()
     }
 }

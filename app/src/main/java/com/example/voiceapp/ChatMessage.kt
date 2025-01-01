@@ -9,5 +9,6 @@ package com.example.voiceapp
 data class ChatMessage(
     val message: String,
     val isUser: Boolean,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val isVisible: Boolean = true  // メッセージの表示/非表示を制御
 )

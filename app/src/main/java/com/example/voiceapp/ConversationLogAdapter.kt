@@ -24,7 +24,7 @@ class ConversationLogAdapter : RecyclerView.Adapter<ConversationLogAdapter.ViewH
             binding.apply {
                 checkBox.isChecked = isSelected
                 checkBox.setOnCheckedChangeListener { _, isChecked -> onCheckChanged(isChecked) }
-                senderText.text = if (message.isUser) "ユーザー" else "AI"
+                senderText.text = if (message.isUser) "user" else "AI"
                 messageText.text = message.message
                 timestampText.text = DATE_FORMAT.format(Date(message.timestamp))
             }
